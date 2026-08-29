@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Nemo Movie</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <nav class="navbar">
+
+        <h2 id="title">🎬 Nemo Movie</h2>
+
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="index.html?type=movie">Movies</a>
+            <a href="index.html?type=series">Series</a>
+            <a href="my-list.html">My List</a>
+        </div>
+
+        <div class="search-box">
+            <input id="searchInput" type="text" placeholder="Search movies...">
+            <button id="searchBtn">Search</button>
+        </div>
+
+    </nav>
+
+    <div class="movie-container">
+        <!-- Movie cards are created by JavaScript -->
+    </div>
+
+    <div id="noResults" style="display: none;">
+        <h2 style="color: white;">
+            No movies found for "<span id="searchTerm"></span>"
+        </h2>
+
+        <p>Try another title or keyword.</p>
+    </div>
+
+    <script type="module" src="script.js"></script>
+
+</body>
+</html>
+

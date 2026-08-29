@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+
+    <title>Add Content</title>
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+
+<body>
+
+    <h1>Add Movie / Series</h1>
+
+
+    <form id="addForm">
+
+        <!-- Type -->
+
+        <label>
+            Type
+        </label>
+
+        <select id="type" required>
+
+            <option value="movie">
+                Movie
+            </option>
+
+            <option value="series">
+                Series
+            </option>
+
+        </select>
+
+
+       <!-- Poster -->
+
+     <label>
+         Poster
+     </label>
+
+     <input
+         type="file"
+         id="poster"
+         accept="image/*"
+         required
+        >
+
+
+        <!-- Title -->
+
+        <label>
+            Title
+        </label>
+
+        <input
+            type="text"
+            id="title"
+            required
+        >
+
+
+        <!-- Category -->
+
+        <label>
+            Category
+        </label>
+
+        <input
+            type="text"
+            id="category"
+        >
+
+
+        <!-- Year -->
+
+        <label>
+            Year
+        </label>
+
+        <input
+            type="number"
+            id="year"
+        >
+
+
+        <!-- Telegram Link -->
+
+        <label>
+            Telegram Link
+        </label>
+
+        <input
+            type="url"
+            id="link"
+        >
+
+
+        <!-- Review -->
+
+        <label>
+            Review
+        </label>
+
+        <textarea
+            id="review"
+            rows="8"
+        ></textarea>
+
+
+        <!-- File Size -->
+
+        <label>
+            File Size
+        </label>
+
+        <input
+            type="text"
+            id="fileSize"
+            placeholder="Example: 1.56GB"
+        >
+
+
+        <!-- Quality -->
+
+        <label>
+            Quality
+        </label>
+
+        <input
+            type="text"
+            id="quality"
+            placeholder="Example: 1080P"
+        >
+
+
+        <!-- Duration -->
+
+     <div id="durationGroup">
+
+      <label>
+           Duration
+      </label>
+
+      <input
+        type="text"
+        id="duration"
+        placeholder="Example: 1hr 59min"
+    >
+
+     </div>
+
+
+        <!-- Episodes -->
+
+        <div id="episodesGroup">
+
+     <label>
+        Episodes
+     </label>
+
+    <input
+        type="number"
+        id="episodes"
+        placeholder="Example: 41"
+    >
+
+     </div>
+
+        <!-- Rating -->
+
+        <label>
+            Rating
+        </label>
+
+        <input
+            type="text"
+            id="rating"
+            placeholder="Example: 7.2/10"
+        >
+
+
+        <button type="submit">
+            Add Content
+        </button>
+
+    </form>
+
+
+    <script src="add.js"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+
+    <!-- Page title -->
+    <title>My List - Nemo Movie</title>
+
+    <!-- Make the page responsive on mobile -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Connect CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- Navigation bar -->
+    <nav class="navbar">
+
+        <!-- Website name -->
+        <h2>🎬 Nemo Movie</h2>
+
+        <!-- Navigation links -->
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="index.html">Movies</a>
+            <a href="#">Series</a>
+            <a href="my-list.html">🔖 My List</a>
+        </div>
+
+    </nav>
+
+
+    <!-- My List page title -->
+    <h1>🔖 My List</h1>
+
+
+    <!-- Saved movies will be displayed here -->
+    <div class="movie-container" id="myList"></div>
+
+
+    <!-- Back to Movies button -->
+    <button id="backButton">← Back to Movies</button>
+
+
+    <!-- Message shown when there are no saved movies -->
+    <p id="emptyMessage">
+        Your saved movies will appear here.
+    </p>
+
+
+    <!-- Load My List JavaScript -->
+    <script type="module" src="my-list.js"></script>
+
+
+    <!-- Back button functionality -->
+    <script>
+        document.getElementById("backButton").addEventListener("click", function() {
+
+            history.back();
+
+        });
+    </script>
+
+</body>
+</html>
+

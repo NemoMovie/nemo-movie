@@ -1,0 +1,222 @@
+/* Main Page */
+
+body {
+
+    font-family: Arial, sans-serif;
+
+    padding: 30px;
+
+    background-color: #f5f5f5;
+
+}
+
+
+/* Page Title */
+
+h1 {
+
+    margin-bottom: 25px;
+
+    font-size: 32px;
+
+}
+
+
+/* Add / Search / Filter / Sort */
+
+.admin-actions {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+
+    margin-bottom: 30px;
+
+    flex-wrap: wrap;
+
+}
+
+
+/* Add Content button */
+
+#addContentButton {
+
+    padding: 14px 24px;
+
+    font-size: 18px;
+
+    cursor: pointer;
+
+    border: none;
+
+    border-radius: 8px;
+
+    font-weight: bold;
+
+    background-color: #2196f3;
+    color: white;
+
+}
+/* Add Content hover effect */
+
+#addContentButton:hover {
+
+    opacity: 0.8;
+
+}
+
+
+/* Search box */
+
+#searchInput {
+
+    width: 300px;
+
+    padding: 14px 16px;
+
+    font-size: 16px;
+
+    border: 1px solid #ccc;
+
+    border-radius: 8px;
+
+    box-sizing: border-box;
+
+}
+
+
+/* Filter and Sort */
+
+#typeFilter,
+#sortFilter {
+
+    padding: 14px 16px;
+
+    font-size: 16px;
+
+    border: 1px solid #ccc;
+
+    border-radius: 8px;
+
+    cursor: pointer;
+
+}
+
+
+/* Movie / Series List */
+
+#adminMovieList {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 10px;
+
+}
+
+
+/* Individual Movie / Series */
+
+/* Movie / Series item */
+
+.admin-movie-item {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 16px;
+
+    padding: 15px;
+
+    border: 1px solid #ddd;
+
+    border-radius: 10px;
+
+    background-color: white;
+
+}
+/* Movie item hover effect */
+
+.admin-movie-item:hover {
+
+    background-color: #f0f4f7;
+
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+}
+
+
+/* Text inside movie item */
+
+.admin-movie-item span {
+
+    flex: 1;
+
+}
+
+
+/* Poster */
+
+.admin-poster {
+
+    width: 60px;
+
+    height: 80px;
+
+    object-fit: cover;
+
+    border-radius: 6px;
+
+}
+
+
+/* Edit / Delete buttons */
+
+.admin-movie-item button {
+
+    padding: 8px 14px;
+
+    border: none;
+
+    border-radius: 5px;
+
+    cursor: pointer;
+
+    font-weight: bold;
+
+}
+
+
+/* Button hover effect */
+
+.admin-movie-item button:hover {
+
+    opacity: 0.8;
+
+}
+
+
+/* Edit button */
+
+.admin-movie-item button:first-of-type {
+
+    background-color: #4caf50;
+
+    color: white;
+
+}
+
+
+/* Delete button */
+
+.admin-movie-item button:last-of-type {
+
+    background-color: #f44336;
+
+    color: white;
+
+}

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+
+    <title>Edit Content</title>
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <link rel="stylesheet" href="edit.css">
+</head>
+
+<body>
+
+    <h1>Edit Movie / Series</h1>
+
+    <form id="editForm">
+
+        <label>Type</label>
+        <select id="type" required>
+            <option value="movie">Movie</option>
+            <option value="series">Series</option>
+        </select>
+
+        <!-- Poster -->
+
+       <label>Poster</label>
+
+       <img
+         id="posterPreview"
+         class="poster-preview"
+         alt="Current poster"
+        >
+
+       <input
+         type="file"
+         id="poster"
+         accept="image/*"
+        >
+
+        <label>Title</label>
+        <input type="text" id="title" required>
+
+        <label>Category</label>
+        <input type="text" id="category">
+
+        <label>Year</label>
+        <input type="number" id="year">
+
+        <label>Telegram Link</label>
+        <input type="url" id="link">
+
+        <label>Review</label>
+        <textarea id="review" rows="8"></textarea>
+
+        <label>File Size</label>
+        <input type="text" id="fileSize">
+
+        <label>Quality</label>
+        <input type="text" id="quality">
+
+        <div id="durationGroup">
+
+            <label>Duration</label>
+
+            <input
+                type="text"
+                id="duration"
+            >
+
+        </div>
+
+        <div id="episodesGroup">
+
+            <label>Episodes</label>
+
+            <input
+                type="number"
+                id="episodes"
+            >
+
+        </div>
+
+        <label>Rating</label>
+        <input type="text" id="rating">
+
+        <button type="submit">
+            Save Changes
+        </button>
+
+    </form>
+
+    <script src="edit.js"></script>
+
+</body>
+
+</html>

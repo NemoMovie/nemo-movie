@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <title>Upload Test</title>
+
+</head>
+
+<body>
+
+    <h1>Upload Poster Test</h1>
+
+    <input
+        type="file"
+        id="poster"
+        accept="image/*"
+    >
+
+    <button id="uploadButton">
+        Upload
+    </button>
+
+    <p id="message"></p>
+
+    <script>
+
+        const posterInput =
+            document.getElementById("poster");
+
+        const uploadButton =
+            document.getElementById("uploadButton");
+
+        const message =
+            document.getElementById("message");
+
+
+        uploadButton.addEventListener(
+            "click",
+            async function() {
+
+                const file =
+                    posterInput.files[0];
+
+                if (!file) {
+
+                    message.textContent =
+                        "Please choose an image.";
+
+                    return;
+
+                }
+
+
+                const formData =
+                    new FormData();
+
+                formData.append(
+                    "poster",
+                    file
+                );
+
+
+                const response =
+                    await fetch(
+                        "http://localhost:3000/api/upload",
+                        {
+
+                            method: "POST",
+
+                            body: formData
+
+                        }
+                    );
+
+
+                const result =
+                    await response.json();
+
+
+                console.log(result);
+
+                message.textContent =
+                    result.message;
+
+            }
+        );
+
+    </script>
+
+</body>
+
+</html>

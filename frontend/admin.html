@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+
+    <title>Admin Panel</title>
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <!--<link rel="stylesheet" href="style.css">  -->
+    <link rel="stylesheet" href="admin.css">
+</head>
+
+<body>
+
+    <h1>Admin Panel</h1>
+
+   <div class="admin-actions">
+
+    <button id="addContentButton">
+        Add Content
+    </button>
+
+    <input
+        type="text"
+        id="searchInput"
+        placeholder="Search movie or series..."
+    >
+    <select id="typeFilter">
+
+    <option value="all">All</option>
+    <option value="movie">Movie</option>
+    <option value="series">Series</option>
+
+    </select>
+    <select id="sortFilter">
+
+    <option value="newest">Newest</option>
+    <option value="oldest">Oldest</option>
+    <option value="titleAZ">Title A → Z</option>
+    <option value="titleZA">Title Z → A</option>
+    <option value="yearHigh">Year ↓</option>
+    <option value="yearLow">Year ↑</option>
+
+    </select>
+
+ </div>
+
+    <h2>Movie / Series List</h2>
+
+    <div id="adminMovieList"></div>
+
+    <script src="admin.js"></script>
+
+</body>
+
+</html>
