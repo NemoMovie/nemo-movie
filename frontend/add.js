@@ -8,6 +8,28 @@ const durationGroup =
 const episodesGroup =
     document.getElementById("episodesGroup");
 
+// Poster preview
+
+const posterInput =
+    document.getElementById("poster");
+
+const posterPreview =
+    document.getElementById("posterPreview");
+
+
+posterInput.addEventListener("change", function() {
+
+    const file =
+        posterInput.files[0];
+
+    if (!file) {
+        return;
+    }
+
+    posterPreview.src =
+        URL.createObjectURL(file);
+
+});
 
 function updateFields() {
 
@@ -98,6 +120,32 @@ addForm.addEventListener("submit", async function(event) {
         return;
 
     }
+    // Get selected genres
+
+const selectedGenres =
+    Array.from(
+        document.querySelectorAll(
+            "#genreGroup input:checked"
+        )
+    ).map(function(checkbox) {
+
+        return checkbox.value;
+
+    });
+
+
+// Get selected categories
+
+const selectedCategories =
+    Array.from(
+        document.querySelectorAll(
+            "#categoryGroup input:checked"
+        )
+    ).map(function(checkbox) {
+
+        return checkbox.value;
+
+    });
 
 
     // Movie data
@@ -110,9 +158,11 @@ addForm.addEventListener("submit", async function(event) {
 
         title: document.getElementById("title").value,
 
-        category: document.getElementById("category").value,
+       genres: selectedGenres.join(", "),
 
-        year: Number(
+       categories: selectedCategories.join(", "),
+
+       year: Number(
             document.getElementById("year").value
         ),
 

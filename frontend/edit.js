@@ -58,8 +58,45 @@ async function loadMovie() {
     document.getElementById("title").value =
         movie.title;
 
-    document.getElementById("category").value =
-        movie.category;
+    // Select saved genres
+
+    const savedGenres =
+    movie.genres
+        ? movie.genres.split(", ")
+        : [];
+
+
+   document.querySelectorAll(
+    "#genreGroup input"
+   ).forEach(function(checkbox) {
+
+    checkbox.checked =
+        savedGenres.includes(
+            checkbox.value
+        );
+
+ });
+
+
+ // Select saved categories
+
+    const savedCategories =
+    movie.categories
+        ? movie.categories.split(", ")
+        : [];
+
+
+   document.querySelectorAll(
+    "#categoryGroup input"
+  ).forEach(function(checkbox) {
+
+    checkbox.checked =
+        savedCategories.includes(
+            checkbox.value
+        );
+
+ });
+       
 
     document.getElementById("year").value =
         movie.year;
@@ -178,6 +215,32 @@ editForm.addEventListener(
                 uploadResult.posterUrl;
 
         }
+          // Get selected genres
+
+       const selectedGenres =
+         Array.from(
+             document.querySelectorAll(
+            "#genreGroup input:checked"
+          )
+         ).map(function(checkbox) {
+
+         return checkbox.value;
+
+        });
+
+
+          // Get selected categories
+
+       const selectedCategories =
+       Array.from(
+          document.querySelectorAll(
+            "#categoryGroup input:checked"
+          )
+          ).map(function(checkbox) {
+
+          return checkbox.value;
+
+       });
 
 
         // Movie data
@@ -193,8 +256,11 @@ editForm.addEventListener(
             title:
                 document.getElementById("title").value,
 
-            category:
-                document.getElementById("category").value,
+            genres:
+                selectedGenres.join(", "),
+
+            categories:
+                selectedCategories.join(", "),
 
             year:
                 Number(

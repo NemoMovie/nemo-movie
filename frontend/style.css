@@ -736,4 +736,62 @@ margin: 20px auto 0;
 .error-message p {
     color: white;
 }
-/* GitHub practice */
+/* Genre and Category checkboxes */
+
+/* Genre and Category checkboxes */
+
+#genreGroup,
+#categoryGroup {
+
+    display: grid;
+
+    grid-template-columns: 180px 180px 180px;
+
+    gap: 8px 20px;
+
+    margin-bottom: 20px;
+
+}
+
+
+#genreGroup label,
+#categoryGroup label {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 6px;
+
+    width: 180px;
+
+    cursor: pointer;
+
+}
+
+
+#genreGroup input,
+#categoryGroup input {
+
+    width: auto;
+
+    margin: 0;
+
+    cursor: pointer;
+
+}
+/* Add Content poster preview */
+
+.poster-preview {
+
+    width: 150px;
+
+    height: 200px;
+
+    object-fit: cover;
+
+    border-radius: 6px;
+
+    margin-bottom: 10px;
+
+}

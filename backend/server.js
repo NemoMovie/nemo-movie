@@ -240,7 +240,7 @@ app.post(
         const {
             poster,
             title,
-            category,
+            genres,
             year,
             link,
             review,
@@ -249,7 +249,8 @@ app.post(
             duration,
             rating,
             type,
-            episodes
+            episodes,
+            categories
         } = req.body;
 
 
@@ -281,7 +282,7 @@ app.post(
             INSERT INTO movies (
                 poster,
                 title,
-                category,
+                genres,
                 year,
                 link,
                 review,
@@ -290,16 +291,17 @@ app.post(
                 duration,
                 rating,
                 type,
-                episodes
+                episodes,
+                categories
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
 
         const result = addMovie.run(
             poster,
             title,
-            category,
+            genres,
             year,
             link,
             review,
@@ -308,7 +310,8 @@ app.post(
             duration,
             rating,
             type,
-            episodes
+            episodes,
+            categories
         );
 
 
@@ -323,7 +326,6 @@ app.post(
 
     }
 );
-
 
 // Upload poster
 // Protected: admin only
@@ -368,7 +370,7 @@ app.put(
         const {
             poster,
             title,
-            category,
+            genres,
             year,
             link,
             review,
@@ -377,7 +379,8 @@ app.put(
             duration,
             rating,
             type,
-            episodes
+            episodes,
+            categories
         } = req.body;
 
 
@@ -394,7 +397,7 @@ app.put(
             SET
                 poster = ?,
                 title = ?,
-                category = ?,
+                genres = ?,
                 year = ?,
                 link = ?,
                 review = ?,
@@ -403,7 +406,8 @@ app.put(
                 duration = ?,
                 rating = ?,
                 type = ?,
-                episodes = ?
+                episodes = ?,
+                categories = ?
             WHERE id = ?
         `);
 
@@ -412,7 +416,7 @@ app.put(
             updateMovie.run(
                 poster,
                 title,
-                category,
+                genres,
                 year,
                 link,
                 review,
@@ -422,6 +426,7 @@ app.put(
                 rating,
                 type,
                 episodes,
+                categories,
                 req.params.id
             );
 
