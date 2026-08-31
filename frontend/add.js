@@ -1,3 +1,5 @@
+import { API_URL } from "./config.js";
+
 const typeSelect = document.getElementById("type");
 
 const durationGroup =
@@ -70,13 +72,13 @@ addForm.addEventListener("submit", async function(event) {
 
 
     const uploadResponse =
-        await fetch(
-            "http://localhost:3000/api/upload",
+         await fetch(
+                 API_URL + "/api/upload",
             {
 
-                method: "POST",
+                  method: "POST",
 
-                body: formData
+                 body: formData
 
             }
         );
@@ -141,9 +143,9 @@ addForm.addEventListener("submit", async function(event) {
 
     // Save movie data
 
-    const response =
-        await fetch(
-            "http://localhost:3000/api/movies",
+      const response =
+         await fetch(
+            API_URL + "/api/movies",
             {
 
                 method: "POST",

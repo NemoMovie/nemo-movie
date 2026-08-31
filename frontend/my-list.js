@@ -1,9 +1,10 @@
+import { API_URL } from "./config.js";
+
 function getPosterUrl(poster) {
 
     if (poster.startsWith("/uploads/")) {
 
-        return "http://localhost:3000" + poster;
-
+        return API_URL + poster;
     }
 
     return poster;
@@ -31,7 +32,7 @@ async function loadMyList() {
 
 
     const response = await fetch(
-        "http://localhost:3000/api/movies"
+        API_URL + "/api/movies"
     );
 
     const movies = await response.json();

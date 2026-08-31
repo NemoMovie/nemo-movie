@@ -1,8 +1,10 @@
+import { API_URL } from "./config.js";
+
 function getPosterUrl(poster) {
 
     if (poster.startsWith("/uploads/")) {
 
-        return "http://localhost:3000" + poster;
+        return API_URL + poster;
 
     }
 
@@ -16,7 +18,7 @@ async function showMovie() {
     const movieId = Number(params.get("id"));
 
     const response = await fetch(
-        "http://localhost:3000/api/movies/" + movieId
+       API_URL + "/api/movies/" + movieId
     );
 
     const selectedMovie = await response.json();

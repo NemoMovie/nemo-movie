@@ -1,8 +1,10 @@
+import { API_URL } from "./config.js";
+
 function getPosterUrl(poster) {
 
     if (poster.startsWith("/uploads/")) {
 
-        return "http://localhost:3000" + poster;
+       return API_URL + poster;
 
     }
 
@@ -28,7 +30,7 @@ let currentPoster = "";
 async function loadMovie() {
 
     const response = await fetch(
-        "http://localhost:3000/api/movies/" + movieId
+        API_URL + "/api/movies/" + movieId
     );
 
     const movie = await response.json();
@@ -145,7 +147,7 @@ editForm.addEventListener(
 
             const uploadResponse =
                 await fetch(
-                    "http://localhost:3000/api/upload",
+                    API_URL + "/api/upload",
                     {
 
                         method: "POST",
@@ -233,7 +235,7 @@ editForm.addEventListener(
 
         const response =
             await fetch(
-                "http://localhost:3000/api/movies/" + movieId,
+                API_URL + "/api/movies/" + movieId,
                 {
 
                     method: "PUT",

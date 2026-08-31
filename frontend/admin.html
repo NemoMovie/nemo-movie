@@ -2,6 +2,7 @@
 <html>
 
 <head>
+
     <meta charset="UTF-8">
 
     <title>Admin Panel</title>
@@ -11,50 +12,130 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <!--<link rel="stylesheet" href="style.css">  -->
     <link rel="stylesheet" href="admin.css">
+
 </head>
+
 
 <body>
 
     <h1>Admin Panel</h1>
 
-   <div class="admin-actions">
 
-    <button id="addContentButton">
-        Add Content
-    </button>
+    <div class="admin-actions">
 
-    <input
-        type="text"
-        id="searchInput"
-        placeholder="Search movie or series..."
-    >
-    <select id="typeFilter">
+        <button id="addContentButton">
+            Add Content
+        </button>
 
-    <option value="all">All</option>
-    <option value="movie">Movie</option>
-    <option value="series">Series</option>
 
-    </select>
-    <select id="sortFilter">
+        <input
+            type="text"
+            id="searchInput"
+            placeholder="Search movie or series..."
+        >
 
-    <option value="newest">Newest</option>
-    <option value="oldest">Oldest</option>
-    <option value="titleAZ">Title A → Z</option>
-    <option value="titleZA">Title Z → A</option>
-    <option value="yearHigh">Year ↓</option>
-    <option value="yearLow">Year ↑</option>
 
-    </select>
+        <select id="typeFilter">
 
- </div>
+            <option value="all">
+                All
+            </option>
+
+            <option value="movie">
+                Movie
+            </option>
+
+            <option value="series">
+                Series
+            </option>
+
+        </select>
+
+
+        <select id="sortFilter">
+
+            <option value="newest">
+                Newest
+            </option>
+
+            <option value="oldest">
+                Oldest
+            </option>
+
+            <option value="titleAZ">
+                Title A → Z
+            </option>
+
+            <option value="titleZA">
+                Title Z → A
+            </option>
+
+            <option value="yearHigh">
+                Year ↓
+            </option>
+
+            <option value="yearLow">
+                Year ↑
+            </option>
+
+        </select>
+
+
+        <button id="logoutButton">
+            Logout
+        </button>
+
+    </div>
+
 
     <h2>Movie / Series List</h2>
 
-    <div id="adminMovieList"></div>
+   <div id="contentStats">
 
-    <script src="admin.js"></script>
+    <span>
+        Total Content:
+        <strong id="totalContent">0</strong>
+    </span>
+
+    <span>
+        Movies:
+        <strong id="totalMovies">0</strong>
+    </span>
+
+    <span>
+        Series:
+        <strong id="totalSeries">0</strong>
+    </span>
+
+   </div>
+   <!-- Admin list headers -->
+
+<div id="adminListHeader">
+
+    <span>Poster</span>
+
+    <span>Title</span>
+
+    <span>Type</span>
+
+    <span>Year</span>
+
+    <span>Actions</span>
+
+</div>
+
+   <div id="adminMovieList"></div>
+
+    <!-- Pagination -->
+
+    <div id="pagination"></div>
+
+
+    <script
+        type="module"
+        src="admin.js"
+    ></script>
 
 </body>
 

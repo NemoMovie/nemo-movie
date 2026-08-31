@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "type": "module",
- "scripts": {
-  "start": "node server.js"
+  "scripts": {
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",
@@ -13,7 +13,9 @@
   "dependencies": {
     "better-sqlite3": "^13.0.3",
     "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "express-session": "^1.19.0",
     "multer": "^2.3.0"
   }
 }
