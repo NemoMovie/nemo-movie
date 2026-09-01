@@ -247,17 +247,16 @@ function displayMovies(movieList) {
             );
 
 
-            // Category
+            // Genres
 
-            const movieCategory =
+           const movieGenres =
                 document.createElement("p");
 
-            movieCategory.textContent =
-                movie.category || "";
+           movieGenres.textContent =
+                movie.genres || "";
 
-
-            card.appendChild(
-                movieCategory
+           card.appendChild(
+               movieGenres
             );
 
 
@@ -289,7 +288,9 @@ function displayMovies(movieList) {
     );
 
 }
+// Current selected category
 
+let selectedCategory = "all";
 
 // Search elements
 
@@ -348,23 +349,33 @@ function searchMovies() {
             .trim();
 
 
-    if (searchText === "") {
-
-        displayMovies(movies);
-
-        noResults.style.display =
-            "none";
-
-        return;
-
-    }
-
-
     const filteredMovies =
         movies.filter(
             function(movie) {
 
-                return (
+                // Check category
+
+                const categories =
+                    (movie.categories || "")
+                        .split(", ")
+                        .map(function(category) {
+
+                            return category.trim();
+
+                        });
+
+
+                const categoryMatch =
+                    selectedCategory === "all" ||
+                    categories.includes(
+                        selectedCategory
+                    );
+
+
+                // Check search
+
+                const searchMatch =
+                    searchText === "" ||
 
                     (movie.title || "")
                         .toLowerCase()
@@ -372,15 +383,25 @@ function searchMovies() {
 
                     ||
 
-                    (movie.category || "")
+                    (movie.genres || "")
+                        .toLowerCase()
+                        .includes(searchText)
+
+                    ||
+
+                    (movie.categories || "")
                         .toLowerCase()
                         .includes(searchText)
 
                     ||
 
                     String(movie.year || "")
-                        .includes(searchText)
+                        .includes(searchText);
 
+
+                return (
+                    categoryMatch &&
+                    searchMatch
                 );
 
             }
@@ -410,6 +431,88 @@ function searchMovies() {
     }
 
 }
+
+// Category filter
+
+const categoryButtons =
+    document.querySelectorAll(
+        ".category-filter button"
+    );
+
+
+categoryButtons.forEach(
+    function(button) {
+
+        button.addEventListener(
+            "click",
+            function() {
+
+                selectedCategory =
+                    button.dataset.category;
+
+
+                searchMovies();
+
+            }
+        );
+
+    }
+);
+
+
+categoryButtons.forEach(
+    function(button) {
+
+        button.addEventListener(
+            "click",
+            function() {
+
+                const selectedCategory =
+                    button.dataset.category;
+
+
+                if (
+                    selectedCategory === "all"
+                ) {
+
+                    displayMovies(movies);
+
+                    return;
+
+                }
+
+
+                const filteredMovies =
+                    movies.filter(
+                        function(movie) {
+
+                            const categories =
+                                (movie.categories || "")
+                                    .split(", ")
+                                    .map(function(category) {
+
+                                        return category.trim();
+
+                                    });
+
+
+                            return categories.includes(
+                                selectedCategory
+                            );
+
+                        }
+                    );
+
+
+                displayMovies(
+                    filteredMovies
+                );
+
+            }
+        );
+
+    }
+);
 
 
 // Start loading movies

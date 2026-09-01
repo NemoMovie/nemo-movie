@@ -173,7 +173,11 @@ function requireAdmin(req, res, next) {
 app.get("/api/movies", function(req, res) {
 
     const movies = db
-        .prepare("SELECT * FROM movies")
+        .prepare(`
+            SELECT *
+            FROM movies
+            ORDER BY id DESC
+        `)
         .all();
 
     res.json(movies);
