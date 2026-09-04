@@ -30,7 +30,7 @@ width: 220px;
 
 margin: 20px auto;
 
-padding: 15px;
+padding: 12px;
 
 background-color: #222;
 
@@ -46,7 +46,7 @@ position: relative;
 
 .movie-card h1 {
 
-font-size: 20px;
+font-size: 17px;
 
 margin: 10px 0;
 
@@ -84,6 +84,8 @@ aspect-ratio: 2 / 3;
 
 object-fit: cover;
 
+ transition: 0.3s;
+
 }
 
 .poster-link {
@@ -104,7 +106,7 @@ bottom: 8px;
 
 right: 8px;
 
-background: rgba(0, 0, 0, 0.5);
+background: rgba(0, 0, 0, 0.7);
 
 color: white;
 
@@ -217,7 +219,7 @@ transform: scale(1.08) translateX(0);
 
 display: flex;
 
-gap: 20px;
+gap: 25px;
 
 flex-wrap: wrap;
 
@@ -225,10 +227,9 @@ flex-wrap: wrap;
 
 .movie-card:hover {
 
-transform: scale(1.15);
+    transform: scale(1.05);
 
-border: 2px solid red;
-
+    border: 2px solid red;
 }
 
 /* Navbar */
@@ -274,6 +275,8 @@ gap: 25px;
 color: white;
 
 text-decoration: none;
+
+transition: 0.3s;
 
 }
 
@@ -536,104 +539,251 @@ margin: 40px 0;
 line-height: 1.6;
 
 }
+/* Category Filter */
 
+.category-filter {
+
+    display: flex;
+
+    justify-content: center;
+
+    flex-wrap: wrap;
+
+    gap: 10px;
+
+    margin: 0 auto;
+
+    padding: 15px;
+
+    background-color: black;
+
+    position: sticky;
+
+    top: 62px;
+
+    z-index: 999;
+
+}
+
+
+.category-filter button {
+
+    padding: 8px 16px;
+
+    background-color: #222;
+
+    color: white;
+
+    border: 1px solid #444;
+
+    border-radius: 8px;
+
+    cursor: pointer;
+
+    font-size: 14px;
+
+}
+
+
+.category-filter button:hover {
+
+    background-color: red;
+
+    border-color: red;
+
+    transform: scale(1.05);
+
+}
 /* Mobile */
 
 @media (max-width: 600px) {
 
-.movie-card {
+    /* Movie cards */
+    .movie-card {
+        width: 100%;
+        margin: 0;
+        padding: 4px;
+        min-height: 0;
+        border: 1px solid #555;
+    }
 
-width: 100%;
+    .movie-container {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+        padding: 0 8px;
+    }
 
-margin: 15px 0;
+    /* Navbar */
+    .navbar {
+        flex-direction: column;
+        gap: 6px;
+        padding: 8px 12px;
+    }
 
+    .nav-links {
+        gap: 15px;
+    }
+
+    .search-box {
+    width: 100%;
+    justify-content: center;
 }
 
-.navbar {
+    .search-box input {
+    width: 75%;
+    padding: 9px;
+    font-size: 13px;
+    }
 
-flex-direction: column;
+    .search-box button {
+    padding: 9px 12px;
+    font-size: 13px;
+    }
 
-gap: 15px;
-
-}
-
-.nav-links {
-
-gap: 15px;
-
-}
-
-.search-box {
-
-width: 100%;
-
-justify-content: center;
-
-}
-
+    /* Movie details page */
 .movie-details {
-
-flex-direction: column;
-
-margin: 20px 10px;
-
-padding: 20px;
-
+    flex-direction: column;
+    margin: 20px 10px;
+    padding: 20px;
 }
 
 .movie-details img {
+    width: 100%;
+    max-width: 300px;
+    margin: 0 auto;
+}
 
-width: 100%;
+.movie-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
 
-max-width: 300px;
-
-margin: 0 auto;
-
+/* Keep the main movie information full width */
+.movie-info h1,
+.movie-info > p,
+.movie-meta {
+    grid-column: 1 / -1;
 }
 
 .movie-meta {
-
-flex-wrap: wrap;
-
-justify-content: center;
-
-gap: 10px;
-
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
 }
 
 .movie-meta div {
-
-flex: 1;
-
-min-width: 40px;
-
+    min-width: 0;
+    text-align: center;
+    padding: 2px 6px;
 }
 
+
 .movie-info h1 {
+    font-size: 24px;
+    margin: 5px 0 2px;
+}
 
-font-size: 24px;
-
+.movie-info > p {
+    margin: 2px 0;
 }
 
 .movie-review {
-
-font-size: 14px;
-
-line-height: 1.6;
-
+    font-size: 14px;
+    line-height: 1.6;
 }
 
-.movie-info a {
-
-display: block;
-
-width: fit-content;
-
-margin: 20px auto 0;
-
+/* Back and Save buttons */
+#backButton {
+    grid-column: 1;
+    grid-row: 6;
+    width: 100%;
 }
 
+#saveButton {
+    grid-column: 2;
+    grid-row: 6;
+    width: 100%;
 }
+
+/* Watch Now at the very bottom */
+#watchButton {
+    grid-column: 1 / -1;
+    grid-row: 7;
+    justify-self: center;
+    width: fit-content;
+    margin: 10px auto 0;
+}
+
+
+    /* Category Filter */
+    .category-filter {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 6px;
+        padding: 8px 6px;
+        position: sticky;
+        top: 100px;
+        z-index: 999;
+    }
+
+    .category-filter button {
+        width: auto;
+        padding: 5px 2px;
+        font-size: 12px;
+        border-radius: 5px;
+    }
+
+    /* Movie title */
+    .movie-card h1 {
+        font-size: 13px;
+        margin: 3px 0;
+    }
+
+    /* Genre */
+    .movie-card p {
+        font-size: 11px;
+         margin: 2px 0 4px;
+    }
+
+    /* Year */
+    .movie-card .movie-year {
+        font-size: 11px;
+        margin: 2px 0 4px;
+    }
+
+    .movie-card img {
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    }
+    .movie-quality {
+    font-size: 9px;
+    }
+
+    .movie-rating {
+    font-size: 9px;
+     }
+    /* Watch Now button */
+    .movie-card a[href^="https://"] {
+    margin-top: 3px;
+    padding: 5px 8px;
+    font-size: 13px;
+    border-radius: 5px;
+    background-color: #ee1010;
+}
+ #pagination {
+    gap: 5px;
+    margin: 20px 0;
+}
+
+#pagination button {
+    padding: 7px 10px;
+    font-size: 12px;
+    border-radius: 6px;
+}
+}
+
 /* Add Content Form */
 
 #addForm {
@@ -795,58 +945,50 @@ margin: 20px auto 0;
     margin-bottom: 10px;
 
 }
-/* Category Filter */
 
-.category-filter {
+/* Pagination */
 
+#pagination {
     display: flex;
-
     justify-content: center;
-
-    flex-wrap: wrap;
-
+    align-items: center;
     gap: 10px;
-
-    margin: 0 auto;
-
-    padding: 15px;
-
-    background-color: black;
-
-    position: sticky;
-
-    top: 62px;
-
-    z-index: 999;
-
+    margin: 30px 0;
 }
 
-
-.category-filter button {
-
-    padding: 8px 16px;
-
-    background-color: #222;
-
-    color: white;
-
-    border: 1px solid #444;
-
+#pagination button {
+    padding: 10px 16px;
+    border: none;
     border-radius: 8px;
-
+    background: #333;
+    color: white;
+    font-size: 16px;
     cursor: pointer;
-
-    font-size: 14px;
-
 }
 
-
-.category-filter button:hover {
-
-    background-color: red;
-
-    border-color: red;
-
+#pagination button:hover {
+    background: #555;
     transform: scale(1.05);
+}
 
+#pagination button:disabled {
+    background: #e50914;
+    color: white;
+    font-weight: bold;
+    box-shadow: 0 0 10px rgba(229, 9, 20, 0.6);
+    transform: scale(1.08);
+    cursor: default;
+}
+.category-filter button.active {
+    background: #e50914;
+    color: white;
+    font-weight: bold;
+    transform: scale(1.05);
+    box-shadow: 0 0 10px rgba(229, 9, 20, 0.5);
+}
+/* Active navigation link */
+
+.nav-links a.active {
+    color: #e50914;
+    font-weight: bold;
 }

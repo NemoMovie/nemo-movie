@@ -2,6 +2,77 @@ import { API_URL } from "./config.js";
 
 let movies = [];
 
+let allMovies = [];
+
+let currentPage = 1;
+
+// 24 movies per page
+
+const moviesPerPage = 24;
+
+let totalMovies = 0;
+
+
+// Highlight the current navigation link
+
+const navLinks =
+    document.querySelectorAll(".nav-links a");
+
+const currentType =
+    new URLSearchParams(window.location.search).get("type");
+
+const currentPageName =
+    window.location.pathname.split("/").pop();
+
+
+navLinks.forEach(function(link) {
+
+    const href =
+        link.getAttribute("href");
+        if (
+                currentPageName === "index.html" &&
+            !currentType &&
+              href === "index.html"
+        ) {
+
+            link.classList.add("active");
+
+        }
+
+
+    if (
+        currentPageName === "my-list.html" &&
+        href === "my-list.html"
+    ) {
+
+        link.classList.add("active");
+
+    }
+
+
+    if (
+        currentPageName === "index.html" &&
+        currentType === "movie" &&
+        href.includes("type=movie")
+    ) {
+
+        link.classList.add("active");
+
+    }
+
+
+    if (
+        currentPageName === "index.html" &&
+        currentType === "series" &&
+        href.includes("type=series")
+    ) {
+
+        link.classList.add("active");
+
+    }
+
+});
+
 
 // Load movies from backend
 
@@ -9,20 +80,12 @@ async function loadMovies() {
 
     try {
 
-        const response = await fetch(
-            API_URL + "/api/movies"
-        );
+        const searchText =
+            searchInput.value
+                .trim();
 
-        if (!response.ok) {
 
-            throw new Error(
-                "Failed to load movies"
-            );
-
-        }
-
-        movies = await response.json();
-
+        // Get type from URL
 
         const params =
             new URLSearchParams(
@@ -33,33 +96,113 @@ async function loadMovies() {
             params.get("type");
 
 
-        if (type === "movie") {
+        let url =
+            API_URL +
+            "/api/movies?page=" +
+            currentPage +
+            "&limit=" +
+            moviesPerPage;
 
-            movies = movies.filter(
-                function(movie) {
 
-                    return movie.type === "movie";
+        // Add search
 
-                }
+        if (searchText !== "") {
+
+            url +=
+                "&search=" +
+                encodeURIComponent(
+                    searchText
+                );
+
+        }
+
+
+        // Add movie/series type
+
+        if (type === "movie" ||
+            type === "series") {
+
+            url +=
+                "&type=" +
+                encodeURIComponent(
+                    type
+                );
+
+        }
+
+
+        // Add category
+
+        if (
+            selectedCategory !== "all"
+        ) {
+
+            url +=
+                "&category=" +
+                encodeURIComponent(
+                    selectedCategory
+                );
+
+        }
+
+
+        const response =
+            await fetch(
+                url
+            );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Failed to load movies"
             );
 
         }
 
 
-        if (type === "series") {
+        const data =
+            await response.json();
 
-            movies = movies.filter(
-                function(movie) {
 
-                    return movie.type === "series";
+        // Store this page's movies
 
-                }
-            );
+        movies =
+            data.movies;
+
+
+        // Store total number of movies
+
+        totalMovies =
+            data.total;
+
+
+        displayMovies(
+            movies
+        );
+
+        displayPagination();
+
+
+        // Show or hide no-results message
+
+        if (
+            movies.length === 0
+        ) {
+
+            noResults.style.display =
+                "block";
+
+            searchTerm.textContent =
+                searchInput.value;
+
+        } else {
+
+            noResults.style.display =
+                "none";
 
         }
 
-
-        displayMovies(movies);
 
     } catch (error) {
 
@@ -83,7 +226,6 @@ async function loadMovies() {
     }
 
 }
-
 
 // Get correct poster URL
 
@@ -231,18 +373,15 @@ function displayMovies(movieList) {
             const movieYear =
                 document.createElement("p");
 
-            movieYear.textContent =
+                movieYear.classList.add("movie-year");
+
+
+               movieYear.textContent =
                 movie.year || "";
 
+               
 
-            movieYear.style.fontSize =
-                "24px";
-
-            movieYear.style.fontWeight =
-                "bold";
-
-
-            card.appendChild(
+              card.appendChild(
                 movieYear
             );
 
@@ -285,6 +424,165 @@ function displayMovies(movieList) {
             );
 
         }
+    );
+
+}
+// Display pagination buttons
+
+function displayPagination() {
+
+    const pagination =
+        document.getElementById(
+            "pagination"
+        );
+
+    pagination.innerHTML = "";
+
+
+    const totalPages =
+        Math.ceil(
+            totalMovies /
+            moviesPerPage
+        );
+
+
+    if (totalPages <= 1) {
+
+        return;
+
+    }
+
+
+    // Previous button
+
+    const previousButton =
+        document.createElement(
+            "button"
+        );
+
+    previousButton.textContent =
+        "Previous";
+
+    previousButton.disabled =
+        currentPage === 1;
+
+
+    previousButton.addEventListener(
+        "click",
+        function() {
+
+            if (currentPage > 1) {
+
+                currentPage--;
+
+                loadMovies();
+                window.scrollTo({
+                  top: 0,
+                  behavior: "smooth"
+                });
+
+            }
+
+        }
+    );
+
+
+    pagination.appendChild(
+        previousButton
+    );
+
+
+    // Page numbers
+
+    for (
+        let page = 1;
+        page <= totalPages;
+        page++
+    ) {
+
+        const pageButton =
+            document.createElement(
+                "button"
+            );
+
+        pageButton.textContent =
+            page;
+
+
+        if (
+            page === currentPage
+        ) {
+
+            pageButton.disabled =
+                true;
+
+        }
+
+
+        pageButton.addEventListener(
+            "click",
+            function() {
+
+                currentPage =
+                    page;
+
+                 loadMovies();
+                 window.scrollTo({
+                     top: 0,
+                   behavior: "smooth"
+               });
+
+            }
+        );
+
+
+        pagination.appendChild(
+            pageButton
+        );
+
+    }
+
+
+    // Next button
+
+    const nextButton =
+        document.createElement(
+            "button"
+        );
+
+    nextButton.textContent =
+        "Next";
+
+
+    nextButton.disabled =
+        currentPage === totalPages;
+
+
+    nextButton.addEventListener(
+        "click",
+        function() {
+
+            if (
+                currentPage <
+                totalPages
+            ) {
+
+                currentPage++;
+
+                loadMovies();
+                window.scrollTo({
+                    top: 0,
+                    behavior: "smooth"
+                });
+
+            }
+
+        }
+    );
+
+
+    pagination.appendChild(
+        nextButton
     );
 
 }
@@ -341,13 +639,76 @@ searchInput.addEventListener(
 
 // Search movies
 
-function searchMovies() {
+async function searchMovies() {
 
     const searchText =
         searchInput.value
             .toLowerCase()
             .trim();
 
+
+    // When searching, ask the backend to search ALL movies
+
+    if (searchText !== "") {
+
+        currentPage = 1;
+
+
+        const response =
+            await fetch(
+                API_URL +
+                "/api/movies?page=" +
+                currentPage +
+                "&limit=" +
+                moviesPerPage +
+                "&search=" +
+                encodeURIComponent(searchText)
+            );
+
+
+        const data =
+            await response.json();
+
+
+        movies =
+            data.movies;
+
+        totalMovies =
+            data.total;
+
+
+        displayMovies(
+            movies
+        );
+
+        displayPagination();
+
+
+        if (
+            movies.length === 0
+        ) {
+
+            noResults.style.display =
+                "block";
+
+            searchTerm.textContent =
+                searchInput.value;
+
+        } else {
+
+            noResults.style.display =
+                "none";
+
+        }
+
+
+        return;
+
+    }
+
+
+    // No search text
+    // Keep the current page movies
 
     const filteredMovies =
         movies.filter(
@@ -372,37 +733,7 @@ function searchMovies() {
                     );
 
 
-                // Check search
-
-                const searchMatch =
-                    searchText === "" ||
-
-                    (movie.title || "")
-                        .toLowerCase()
-                        .includes(searchText)
-
-                    ||
-
-                    (movie.genres || "")
-                        .toLowerCase()
-                        .includes(searchText)
-
-                    ||
-
-                    (movie.categories || "")
-                        .toLowerCase()
-                        .includes(searchText)
-
-                    ||
-
-                    String(movie.year || "")
-                        .includes(searchText);
-
-
-                return (
-                    categoryMatch &&
-                    searchMatch
-                );
+                return categoryMatch;
 
             }
         );
@@ -411,6 +742,9 @@ function searchMovies() {
     displayMovies(
         filteredMovies
     );
+
+
+    displayPagination();
 
 
     if (
@@ -449,71 +783,25 @@ categoryButtons.forEach(
 
                 selectedCategory =
                     button.dataset.category;
+                    categoryButtons.forEach(function(button) {
+
+                     button.classList.remove("active");
+
+                });
+
+                   button.classList.add("active");
 
 
-                searchMovies();
-
-            }
-        );
-
-    }
-);
+                    currentPage = 1;
 
 
-categoryButtons.forEach(
-    function(button) {
-
-        button.addEventListener(
-            "click",
-            function() {
-
-                const selectedCategory =
-                    button.dataset.category;
-
-
-                if (
-                    selectedCategory === "all"
-                ) {
-
-                    displayMovies(movies);
-
-                    return;
-
-                }
-
-
-                const filteredMovies =
-                    movies.filter(
-                        function(movie) {
-
-                            const categories =
-                                (movie.categories || "")
-                                    .split(", ")
-                                    .map(function(category) {
-
-                                        return category.trim();
-
-                                    });
-
-
-                            return categories.includes(
-                                selectedCategory
-                            );
-
-                        }
-                    );
-
-
-                displayMovies(
-                    filteredMovies
-                );
+                   loadMovies();
 
             }
         );
 
     }
 );
-
 
 // Start loading movies
 

@@ -93,17 +93,19 @@ addForm.addEventListener("submit", async function(event) {
     );
 
 
-    const uploadResponse =
-         await fetch(
-                 API_URL + "/api/upload",
-            {
+   const uploadResponse =
+    await fetch(
+        API_URL + "/api/upload",
+        {
 
-                  method: "POST",
+            method: "POST",
 
-                 body: formData
+            credentials: "include",
 
-            }
-        );
+            body: formData
+
+        }
+    );
 
 
     const uploadResult =
@@ -199,6 +201,7 @@ const selectedCategories =
             {
 
                 method: "POST",
+                credentials: "include",
 
                 headers: {
 

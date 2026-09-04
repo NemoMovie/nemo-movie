@@ -168,19 +168,148 @@ function requireAdmin(req, res, next) {
 }
 
 
-// GET all movies
+// GET movies with search, type, category, and pagination
 
 app.get("/api/movies", function(req, res) {
 
-    const movies = db
-        .prepare(`
-            SELECT *
-            FROM movies
-            ORDER BY id DESC
-        `)
-        .all();
+    const page =
+        Number(req.query.page) || 1;
 
-    res.json(movies);
+    const limit =
+        Number(req.query.limit) || 20;
+
+    const search =
+        (req.query.search || "").trim();
+
+    const type =
+        (req.query.type || "").trim();
+
+    const category =
+        (req.query.category || "").trim();
+
+
+    const offset =
+        (page - 1) * limit;
+
+
+    // Build filter conditions
+
+    const conditions = [];
+
+    const values = [];
+
+
+    // Search
+
+    if (search) {
+
+        const searchText =
+            "%" + search + "%";
+
+
+        conditions.push(`
+            (
+                title LIKE ?
+                OR genres LIKE ?
+                OR categories LIKE ?
+                OR CAST(year AS TEXT) LIKE ?
+            )
+        `);
+
+
+        values.push(
+            searchText,
+            searchText,
+            searchText,
+            searchText
+        );
+
+    }
+
+
+    // Movie / Series
+
+    if (
+        type === "movie" ||
+        type === "series"
+    ) {
+
+        conditions.push(
+            "type = ?"
+        );
+
+
+        values.push(
+            type
+        );
+
+    }
+
+
+    // Country / Category
+
+    if (category) {
+
+        conditions.push(
+            "categories LIKE ?"
+        );
+
+
+        values.push(
+            "%" + category + "%"
+        );
+
+    }
+
+
+    // Create WHERE clause
+
+    const whereClause =
+        conditions.length > 0
+            ? "WHERE " + conditions.join(" AND ")
+            : "";
+
+
+    // Get movies for this page
+
+    const movies =
+        db
+            .prepare(`
+                SELECT *
+                FROM movies
+                ${whereClause}
+                ORDER BY id DESC
+                LIMIT ? OFFSET ?
+            `)
+            .all(
+                ...values,
+                limit,
+                offset
+            );
+
+
+    // Get total matching movies
+
+    const total =
+        db
+            .prepare(`
+                SELECT COUNT(*) AS count
+                FROM movies
+                ${whereClause}
+            `)
+            .get(
+                ...values
+            )
+            .count;
+
+
+    res.json({
+
+        movies: movies,
+
+        total: total
+
+    });
 
 });
 // Admin movie list

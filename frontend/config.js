@@ -1,4 +1,4 @@
 // Backend server address
 
 export const API_URL =
-    "http://localhost:3000";
+    `${window.location.protocol}//${window.location.host}`;

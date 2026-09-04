@@ -45,9 +45,9 @@ async function showMovie() {
 
 
     // Category
-    const movieCategory = document.getElementById("movieCategory");
+    const movieGenre = document.getElementById("movieGenre");
 
-    movieCategory.textContent = selectedMovie.category;
+    movieGenre.textContent = selectedMovie.genres;
 
 
     // Review
@@ -112,7 +112,7 @@ async function showMovie() {
 
       if (savedMovies.includes(selectedMovie.id)) {
 
-         saveButton.textContent = "🔖 Saved " + contentType;
+         saveButton.textContent = "✅ " + contentType + " Saved!";
 
     } else {
 
@@ -152,7 +152,7 @@ async function showMovie() {
                 JSON.stringify(savedMovies)
             );
 
-            saveButton.textContent = "🔖 Saved " + contentType;
+            saveButton.textContent = "✅ " + contentType + " Saved!";
 
         }
 

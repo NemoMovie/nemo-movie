@@ -35,7 +35,9 @@ async function loadMyList() {
         API_URL + "/api/movies"
     );
 
-    const movies = await response.json();
+    const data = await response.json();
+
+    const movies = data.movies;
 
 
     const savedMovieList = movies.filter(function(movie) {
