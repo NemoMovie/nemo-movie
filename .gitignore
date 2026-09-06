@@ -2,3 +2,4 @@ node_modules/
 backend/movies.db
 backend/uploads/
 backend/.env 
+telegram-bot/.env

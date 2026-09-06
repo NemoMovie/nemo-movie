@@ -49,6 +49,35 @@ app.use(
 const db = new Database(
     path.join(__dirname, "movies.db")
 );
+const columns = db
+    .prepare("PRAGMA table_info(movies)")
+    .all();
+
+const hasTelegramChatId = columns.some(function(column) {
+    return column.name === "telegram_chat_id";
+});
+
+if (!hasTelegramChatId) {
+    db.exec(`
+        ALTER TABLE movies
+        ADD COLUMN telegram_chat_id TEXT
+    `);
+
+    console.log("Telegram chat ID column added!");
+}
+
+const hasTelegramMessageId = columns.some(function(column) {
+    return column.name === "telegram_message_id";
+});
+
+if (!hasTelegramMessageId) {
+    db.exec(`
+        ALTER TABLE movies
+        ADD COLUMN telegram_message_id INTEGER
+    `);
+
+    console.log("Telegram message ID column added!");
+}
 
 
 // Image upload settings
@@ -360,7 +389,46 @@ app.get("/api/movies/:id", function(req, res) {
     res.json(movie);
 
 });
+// Get Telegram storage info
 
+app.get("/api/movies/:id/telegram", function(req, res) {
+
+    const movieId = Number(req.params.id);
+
+    if (
+        !Number.isInteger(movieId) ||
+        movieId <= 0
+    ) {
+
+        return res.status(400).json({
+            message: "Invalid movie ID"
+        });
+
+    }
+
+    const movie = db
+        .prepare(`
+            SELECT
+                id,
+                title,
+                telegram_chat_id,
+                telegram_message_id
+            FROM movies
+            WHERE id = ?
+        `)
+        .get(movieId);
+
+    if (!movie) {
+
+        return res.status(404).json({
+            message: "Movie not found"
+        });
+
+    }
+
+    res.json(movie);
+
+});
 
 // Add movie or series
 // Protected: admin only

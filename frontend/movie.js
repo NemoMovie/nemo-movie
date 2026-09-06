@@ -67,7 +67,7 @@ async function showMovie() {
     // Watch Now
     const watchButton = document.getElementById("watchButton");
 
-    watchButton.href = selectedMovie.link;
+    watchButton.href = `https://t.me/nemomovie_Bot?start=movie_${selectedMovie.id}`;
 
     watchButton.target = "_blank";
 

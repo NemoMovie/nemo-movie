@@ -31,5 +31,30 @@ if (!hasEpisodes) {
 
     console.log("Episodes column added!");
 }
+const hasTelegramChatId = columns.some(function(column) {
+    return column.name === "telegram_chat_id";
+});
+
+if (!hasTelegramChatId) {
+    db.exec(`
+        ALTER TABLE movies
+        ADD COLUMN telegram_chat_id TEXT
+    `);
+
+    console.log("Telegram chat ID column added!");
+}
+
+const hasTelegramMessageId = columns.some(function(column) {
+    return column.name === "telegram_message_id";
+});
+
+if (!hasTelegramMessageId) {
+    db.exec(`
+        ALTER TABLE movies
+        ADD COLUMN telegram_message_id INTEGER
+    `);
+
+    console.log("Telegram message ID column added!");
+}
 
 console.log("Movies database ready!");
