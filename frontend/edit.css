@@ -1,15 +1,49 @@
-#episodeManagementSection .episode-management-row {
+#episodeManagementSection .episode-caption-helper {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
-    padding: 8px 0;
+    gap: 4px;
+    font-size: 12px;
+    min-width: 0;
+}
+
+.episode-caption-helper code {
+    overflow-wrap: anywhere;
+}
+
+#episodeManagementSection .episode-caption-helper button {
+    padding: 4px 6px;
+    font-size: 12px;
+}
+
+#episodeManagementSection .episode-management-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 10px 8px;
+    padding: 12px 0;
     border-bottom: 1px solid #ddd;
 }
 
 #episodeManagementSection .episode-mapping-status {
-    flex: 1;
-    min-width: 100px;
+    grid-column: 2 / -1;
+    grid-row: 1;
+    min-width: 0;
+    text-align: right;
+}
+
+#episodeManagementSection .episode-management-row > span:first-child {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+#episodeManagementSection .episode-caption-helper {
+    grid-column: 1;
+    grid-row: 2;
+}
+
+#episodeManagementSection .episode-management-row > button {
+    grid-row: 2;
 }
 
 #episodeManagementSection .episode-management-row button,
@@ -21,6 +55,37 @@
 
 #mappedEpisodeList {
     margin: 12px 0;
+}
+
+/* Copy and Add */
+#episodeManagementSection .episode-caption-helper button,
+#episodeManagementSection .episode-management-row > button:only-of-type {
+    background-color: #1565c0;
+    color: white;
+}
+
+#episodeManagementSection .episode-caption-helper button:hover,
+#episodeManagementSection .episode-management-row > button:only-of-type:hover {
+    background-color: #0d47a1;
+}
+
+/* Edit and Delete are the two direct buttons on available rows. */
+#episodeManagementSection .episode-management-row > button:first-of-type:not(:only-of-type) {
+    background-color: #2e7d32;
+    color: white;
+}
+
+#episodeManagementSection .episode-management-row > button:first-of-type:not(:only-of-type):hover {
+    background-color: #1b5e20;
+}
+
+#episodeManagementSection .episode-management-row > button:last-of-type:not(:only-of-type) {
+    background-color: #c62828;
+    color: white;
+}
+
+#episodeManagementSection .episode-management-row > button:last-of-type:not(:only-of-type):hover {
+    background-color: #b71c1c;
 }
 
 .episode-management-columns {

@@ -23,6 +23,7 @@ const movieId =
 // Store the current poster
 
 let currentPoster = "";
+let currentLegacyLink = null;
 
 const telegramMappingSection = document.getElementById("telegramMappingSection");
 const telegramMappingForm = document.getElementById("telegramMappingForm");
@@ -145,6 +146,27 @@ async function loadMappedEpisodes() {
             const label = document.createElement("span");
             label.textContent = "Episode " + episode.episode_number + " ";
             row.appendChild(label);
+            const helper = document.createElement("span");
+            helper.className = "episode-caption-helper";
+            const caption = document.createElement("code");
+            caption.textContent = "series_" + movieId + "_ep_" + number;
+            helper.appendChild(caption);
+            const copyButton = document.createElement("button");
+            copyButton.type = "button";
+            copyButton.textContent = "Copy";
+            copyButton.setAttribute("aria-label", "Copy Telegram caption " + caption.textContent);
+            copyButton.addEventListener("click", async function() {
+                try {
+                    await navigator.clipboard.writeText(caption.textContent);
+                    copyButton.textContent = "Copied!";
+                    copyButton.title = "";
+                } catch {
+                    copyButton.textContent = "Copy failed";
+                    copyButton.title = "Select the caption text and copy it manually.";
+                }
+            });
+            helper.appendChild(copyButton);
+            row.appendChild(helper);
             const status = document.createElement("span");
             status.className = "episode-mapping-status";
             status.textContent = available
@@ -248,6 +270,8 @@ episodeMappingForm.addEventListener("submit", async function(event) {
 
 function updateSeriesStatusVisibility() {
     document.getElementById("seriesStatusGroup").hidden = contentTypeSelect.value !== "series";
+    document.getElementById("durationGroup").hidden = contentTypeSelect.value === "series";
+    document.getElementById("episodesGroup").hidden = contentTypeSelect.value !== "series";
 }
 
 contentTypeSelect.addEventListener("change", updateSeriesStatusVisibility);
@@ -341,8 +365,7 @@ async function loadMovie() {
     document.getElementById("year").value =
         movie.year;
 
-    document.getElementById("link").value =
-        movie.link;
+    currentLegacyLink = movie.link;
 
     document.getElementById("review").value =
         movie.review;
@@ -508,7 +531,7 @@ editForm.addEventListener(
                 ),
 
             link:
-                document.getElementById("link").value,
+                currentLegacyLink,
 
             review:
                 document.getElementById("review").value,

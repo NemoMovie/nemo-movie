@@ -1,3 +1,24 @@
+.admin-movie-item .caption-helper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+    font-size: 12px;
+}
+
+.caption-helper code {
+    overflow-wrap: anywhere;
+}
+
+.admin-movie-item .caption-copy {
+    width: auto;
+    margin: 0 !important;
+    padding: 4px 6px;
+    font-size: 12px;
+    background-color: #eee;
+    color: #222;
+}
+
  /* Main Page */
 
 body {

@@ -338,6 +338,30 @@ function displayMovies(movieList) {
             // Movie ID
             const movieId = document.createElement("span");
             movieId.textContent = movie.id;
+            if (movie.type === "movie") {
+                const helper = document.createElement("span");
+                helper.className = "caption-helper";
+                const caption = document.createElement("code");
+                caption.textContent = "movie_" + movie.id;
+                helper.appendChild(caption);
+                const copyButton = document.createElement("button");
+                copyButton.type = "button";
+                copyButton.className = "caption-copy";
+                copyButton.textContent = "Copy";
+                copyButton.setAttribute("aria-label", "Copy Telegram caption " + caption.textContent);
+                copyButton.addEventListener("click", async function() {
+                    try {
+                        await navigator.clipboard.writeText(caption.textContent);
+                        copyButton.textContent = "Copied!";
+                        copyButton.title = "";
+                    } catch {
+                        copyButton.textContent = "Copy failed";
+                        copyButton.title = "Select the caption text and copy it manually.";
+                    }
+                });
+                helper.appendChild(copyButton);
+                movieId.appendChild(helper);
+            }
             movieItem.appendChild(movieId);
 
             // Type

@@ -169,7 +169,7 @@ const selectedCategories =
             document.getElementById("year").value
         ),
 
-        link: document.getElementById("link").value,
+        link: "",
 
         review: document.getElementById("review").value,
 
