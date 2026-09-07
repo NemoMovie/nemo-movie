@@ -105,10 +105,31 @@ bot.onText(/^\/start series_(\d+)_ep_(\d+)\s*$/, async function(msg, match) {
 
         const episode = await response.json();
 
+        const seriesResponse = await fetch(
+           `${mappingBackendUrl}/api/movies/${seriesId}`
+        );
+
+        if (!seriesResponse.ok) {
+             throw new Error("Series details could not be loaded.");
+        }
+
+        const series = await seriesResponse.json();
+
+        const isFinalEpisode =
+              series.series_status === "completed" &&
+              Number(series.episodes) === Number(episodeNumber);
+
+        const caption =
+             `${series.title} (${series.year}) _Ep_${episodeNumber}` +
+             (isFinalEpisode ? "_End" : "");
+
         await bot.copyMessage(
-            msg.chat.id,
-            Number(episode.telegram_chat_id),
-            episode.telegram_message_id
+             msg.chat.id,
+             Number(episode.telegram_chat_id),
+             episode.telegram_message_id,
+            {
+                caption: caption
+            }
         );
 
         console.log("Episode sent: Series ID:", seriesId, "Episode number:", episodeNumber);
@@ -157,11 +178,26 @@ bot.onText(/\/start movie_(\d+)/, async function(msg, match) {
 
             return;
         }
+        const movieDetailsResponse = await fetch(
+            `${mappingBackendUrl}/api/movies/${movieId}`
+        );
+
+        if (!movieDetailsResponse.ok) {
+           throw new Error("Movie details could not be loaded.");
+        }
+
+       const movieDetails = await movieDetailsResponse.json();
+
+       const caption =
+          `${movieDetails.title} (${movieDetails.year})`;
 
         await bot.copyMessage(
             msg.chat.id,
             Number(movie.telegram_chat_id),
-            movie.telegram_message_id
+            movie.telegram_message_id,
+            {
+                caption: caption
+            }
         );
 
         console.log(
