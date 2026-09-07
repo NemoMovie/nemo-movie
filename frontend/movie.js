@@ -13,18 +13,45 @@ function getPosterUrl(poster) {
 }
 async function showMovie() {
 
+    function showLoadError(message) {
+        const movieInfo = document.querySelector(".movie-info");
+        Array.from(movieInfo.children).forEach(function(element) {
+            if (element.id !== "backButton") {
+                element.style.display = "none";
+            }
+        });
+        document.getElementById("moviePoster").style.display = "none";
+        const errorMessage = document.createElement("p");
+        errorMessage.textContent = message;
+        errorMessage.setAttribute("role", "alert");
+        movieInfo.insertBefore(errorMessage, movieInfo.firstChild);
+    }
+
     const params = new URLSearchParams(window.location.search);
 
     const movieId = Number(params.get("id"));
 
-    const response = await fetch(
-       API_URL + "/api/movies/" + movieId
-    );
+    if (!Number.isSafeInteger(movieId) || movieId <= 0) {
+        showLoadError("Movie or series not found.");
+        return;
+    }
 
-    const selectedMovie = await response.json();
-
-    if (!selectedMovie) {
-        document.body.innerHTML = "<h1>Movie not found</h1>";
+    let selectedMovie;
+    try {
+        const response = await fetch(API_URL + "/api/movies/" + movieId);
+        if (!response.ok) {
+            showLoadError(response.status === 404
+                ? "Movie or series not found."
+                : "Could not load this title.");
+            return;
+        }
+        selectedMovie = await response.json();
+        if (!selectedMovie || selectedMovie.id !== movieId) {
+            showLoadError("Could not load this title.");
+            return;
+        }
+    } catch {
+        showLoadError("Could not load this title.");
         return;
     }
 
@@ -71,6 +98,52 @@ async function showMovie() {
 
     watchButton.target = "_blank";
 
+    function seriesSummary(availability) {
+        const status = selectedMovie.series_status === "ongoing" ? "Ongoing"
+            : selectedMovie.series_status === "completed" ? "Completed" : "Status not set";
+        const planned = Number(selectedMovie.episodes);
+        return status + " · " + availability + (planned > 0 ? " · " + planned + " planned" : "");
+    }
+
+    if (selectedMovie.type === "series") {
+        watchButton.style.display = "none";
+
+        const episodeContainer = document.getElementById("episodeContainer");
+        episodeContainer.hidden = false;
+        episodeContainer.textContent = "Loading episodes...";
+
+        fetch(API_URL + "/api/series/" + selectedMovie.id + "/episodes")
+            .then(function(response) {
+                if (!response.ok) {
+                    throw new Error("Failed to load episodes");
+                }
+                return response.json();
+            })
+            .then(function(episodes) {
+                document.getElementById("movieDuration").textContent = seriesSummary(episodes.length + " episodes available");
+                episodeContainer.textContent = "";
+
+                if (episodes.length === 0) {
+                    episodeContainer.textContent = "Episodes not available yet.";
+                    return;
+                }
+
+                episodes.forEach(function(episode) {
+                    const episodeLink = document.createElement("a");
+                    episodeLink.textContent = "Episode " + episode.episode_number;
+                    episodeLink.href = `https://t.me/nemomovie_Bot?start=series_${selectedMovie.id}_ep_${episode.episode_number}`;
+                    episodeLink.target = "_blank";
+                    episodeLink.rel = "noopener noreferrer";
+                    episodeContainer.appendChild(episodeLink);
+                });
+            })
+            .catch(function(error) {
+                console.error(error);
+                document.getElementById("movieDuration").textContent = seriesSummary("Availability unavailable");
+                episodeContainer.textContent = "Unable to load episodes. Please try again later.";
+            });
+    }
+
 
     // Movie information
     const movieFileSize = document.getElementById("movieFileSize");
@@ -87,7 +160,7 @@ async function showMovie() {
      if (selectedMovie.type === "series") {
 
        movieDurationLabel.textContent = "Episodes";
-       movieDuration.textContent = selectedMovie.episodes;
+       movieDuration.textContent = seriesSummary("Loading availability...");
 
     } else {
 

@@ -32,6 +32,7 @@ posterInput.addEventListener("change", function() {
 });
 
 function updateFields() {
+    document.getElementById("seriesStatusGroup").hidden = typeSelect.value !== "series";
 
     if (typeSelect.value === "movie") {
 
@@ -183,8 +184,11 @@ const selectedCategories =
 
         rating: document.getElementById("rating").value,
 
+        ...(typeSelect.value === "series"
+            ? { series_status: document.getElementById("seriesStatus").value }
+            : {}),
         episodes:
-            typeSelect.value === "series"
+            typeSelect.value === "series" && document.getElementById("episodes").value.trim() !== ""
                 ? Number(
                     document.getElementById("episodes").value
                 )

@@ -223,13 +223,22 @@
 
         <div id="episodesGroup">
 
-            <label>Episodes</label>
+            <label>Planned / Total Episodes (optional)</label>
 
             <input
                 type="number"
                 id="episodes"
             >
 
+        </div>
+
+        <div id="seriesStatusGroup" hidden>
+            <label for="seriesStatus">Status</label>
+            <select id="seriesStatus">
+                <option value="">Choose status</option>
+                <option value="ongoing">Ongoing</option>
+                <option value="completed">Completed</option>
+            </select>
         </div>
 
         <label>Rating</label>
@@ -240,6 +249,36 @@
         </button>
 
     </form>
+
+    <section id="telegramMappingSection" hidden>
+        <h2>Telegram Mapping</h2>
+        <form id="telegramMappingForm">
+            <label for="telegramChatId">Telegram Chat ID</label>
+            <input type="text" id="telegramChatId" required>
+            <label for="telegramMessageId">Telegram Message ID</label>
+            <input type="number" id="telegramMessageId" min="1" step="1" required>
+            <button type="submit">Save Mapping</button>
+            <p id="telegramMappingMessage" role="status"></p>
+        </form>
+    </section>
+
+    <section id="episodeManagementSection" hidden>
+        <h2>Episode Management</h2>
+        <p id="episodeAvailabilitySummary" role="status"></p>
+        <p id="episodeAvailabilityNotice"></p>
+        <button id="refreshEpisodesButton" type="button">Refresh Episodes</button>
+        <div id="mappedEpisodeList"></div>
+        <form id="episodeMappingForm">
+            <label for="episodeNumber">Episode Number</label>
+            <input type="number" id="episodeNumber" min="1" step="1" required>
+            <label for="episodeChatId">Telegram Chat ID</label>
+            <input type="text" id="episodeChatId" required>
+            <label for="episodeMessageId">Telegram Message ID</label>
+            <input type="number" id="episodeMessageId" min="1" step="1" required>
+            <button type="submit">Save Episode Mapping</button>
+        </form>
+        <p id="episodeManagementMessage" role="status"></p>
+    </section>
 
     <script type="module" src="edit.js"></script>
 

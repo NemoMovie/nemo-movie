@@ -2,6 +2,10 @@ import { API_URL } from "./config.js";
 
 function getPosterUrl(poster) {
 
+    if (!poster) {
+        return "";
+    }
+
     if (poster.startsWith("/uploads/")) {
 
         return API_URL + poster;
@@ -12,8 +16,19 @@ function getPosterUrl(poster) {
 }
 async function loadMyList() {
 
-    const savedMovies =
-        JSON.parse(localStorage.getItem("savedMovies")) || [];
+    let storedMovies = [];
+    try {
+        const parsed = JSON.parse(localStorage.getItem("savedMovies"));
+        if (Array.isArray(parsed)) {
+            storedMovies = parsed;
+        }
+    } catch {
+        // Invalid saved data is treated as empty without changing localStorage.
+    }
+    const savedMovies = Array.from(new Set(storedMovies
+        .filter(function(id) { return typeof id === "number" || (typeof id === "string" && id.trim() !== ""); })
+        .map(Number)
+        .filter(function(id) { return Number.isSafeInteger(id) && id > 0; })));
 
 
     const movieContainer =
@@ -21,6 +36,9 @@ async function loadMyList() {
 
     const emptyMessage =
         document.getElementById("emptyMessage");
+
+    movieContainer.textContent = "";
+    emptyMessage.textContent = "Your saved movies will appear here.";
 
 
     if (savedMovies.length === 0) {
@@ -31,31 +49,51 @@ async function loadMyList() {
     }
 
 
-    const response = await fetch(
-        API_URL + "/api/movies"
-    );
+    emptyMessage.style.display = "block";
+    emptyMessage.textContent = "Loading saved titles...";
 
-    const data = await response.json();
+    const savedMovieList = [];
+    let failedRequests = 0;
+    let missingMovies = 0;
 
-    const movies = data.movies;
+    for (let offset = 0; offset < savedMovies.length; offset += 5) {
+        await Promise.all(savedMovies.slice(offset, offset + 5).map(async function(id) {
+            try {
+                const response = await fetch(API_URL + "/api/movies/" + id);
+                if (response.status === 404) {
+                    missingMovies++;
+                    return;
+                }
+                if (!response.ok) {
+                    throw new Error("Movie request failed");
+                }
+                const movie = await response.json();
+                if (!movie || movie.id !== id || (movie.poster != null && typeof movie.poster !== "string")) {
+                    throw new Error("Invalid movie response");
+                }
+                savedMovieList.push(movie);
+            } catch {
+                failedRequests++;
+            }
+        }));
+    }
 
-
-    const savedMovieList = movies.filter(function(movie) {
-
-        return savedMovies.includes(movie.id);
-
-    });
-
+    savedMovieList.sort(function(a, b) { return b.id - a.id; });
 
     if (savedMovieList.length === 0) {
-
-        emptyMessage.style.display = "block";
-
+        emptyMessage.textContent = failedRequests > 0
+            ? "Unable to load saved titles. Please try again later."
+            : "Your saved titles are no longer available.";
         return;
     }
 
-
-    emptyMessage.style.display = "none";
+    if (failedRequests > 0) {
+        emptyMessage.textContent = "Some saved titles could not be loaded. Please try again later.";
+    } else if (missingMovies > 0) {
+        emptyMessage.textContent = "Some saved titles are no longer available.";
+    } else {
+        emptyMessage.style.display = "none";
+    }
 
 
     savedMovieList.forEach(function(movie) {

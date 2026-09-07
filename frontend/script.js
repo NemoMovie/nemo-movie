@@ -5,6 +5,7 @@ let movies = [];
 let allMovies = [];
 
 let currentPage = 1;
+let movieRequestVersion = 0;
 
 // 24 movies per page
 
@@ -77,6 +78,7 @@ navLinks.forEach(function(link) {
 // Load movies from backend
 
 async function loadMovies() {
+    const requestVersion = ++movieRequestVersion;
 
     try {
 
@@ -164,6 +166,10 @@ async function loadMovies() {
         const data =
             await response.json();
 
+        if (requestVersion !== movieRequestVersion) {
+            return;
+        }
+
 
         // Store this page's movies
 
@@ -205,6 +211,9 @@ async function loadMovies() {
 
 
     } catch (error) {
+        if (requestVersion !== movieRequestVersion) {
+            return;
+        }
 
         console.error(error);
 
@@ -264,7 +273,10 @@ function displayMovies(movieList) {
         function(movie) {
 
             const card =
-                document.createElement("div");
+                document.createElement("a");
+
+            card.href = "movie.html?id=" + movie.id;
+            card.classList.add("homepage-card-link");
 
             card.classList.add(
                 "movie-card"
@@ -277,10 +289,7 @@ function displayMovies(movieList) {
             // Poster
 
             const posterLink =
-                document.createElement("a");
-
-            posterLink.href =
-                "movie.html?id=" + movie.id;
+                document.createElement("div");
 
             posterLink.classList.add(
                 "poster-link"
@@ -396,26 +405,6 @@ function displayMovies(movieList) {
 
            card.appendChild(
                movieGenres
-            );
-
-
-            // Watch Now
-
-            const watchLink =
-                document.createElement("a");
-
-            watchLink.textContent =
-                "Watch Now";
-
-            watchLink.href =
-                movie.link || "#";
-
-            watchLink.target =
-                "_blank";
-
-
-            card.appendChild(
-                watchLink
             );
 
 
@@ -640,130 +629,8 @@ searchInput.addEventListener(
 // Search movies
 
 async function searchMovies() {
-
-    const searchText =
-        searchInput.value
-            .toLowerCase()
-            .trim();
-
-
-    // When searching, ask the backend to search ALL movies
-
-    if (searchText !== "") {
-
-        currentPage = 1;
-
-
-        const response =
-            await fetch(
-                API_URL +
-                "/api/movies?page=" +
-                currentPage +
-                "&limit=" +
-                moviesPerPage +
-                "&search=" +
-                encodeURIComponent(searchText)
-            );
-
-
-        const data =
-            await response.json();
-
-
-        movies =
-            data.movies;
-
-        totalMovies =
-            data.total;
-
-
-        displayMovies(
-            movies
-        );
-
-        displayPagination();
-
-
-        if (
-            movies.length === 0
-        ) {
-
-            noResults.style.display =
-                "block";
-
-            searchTerm.textContent =
-                searchInput.value;
-
-        } else {
-
-            noResults.style.display =
-                "none";
-
-        }
-
-
-        return;
-
-    }
-
-
-    // No search text
-    // Keep the current page movies
-
-    const filteredMovies =
-        movies.filter(
-            function(movie) {
-
-                // Check category
-
-                const categories =
-                    (movie.categories || "")
-                        .split(", ")
-                        .map(function(category) {
-
-                            return category.trim();
-
-                        });
-
-
-                const categoryMatch =
-                    selectedCategory === "all" ||
-                    categories.includes(
-                        selectedCategory
-                    );
-
-
-                return categoryMatch;
-
-            }
-        );
-
-
-    displayMovies(
-        filteredMovies
-    );
-
-
-    displayPagination();
-
-
-    if (
-        filteredMovies.length === 0
-    ) {
-
-        noResults.style.display =
-            "block";
-
-        searchTerm.textContent =
-            searchInput.value;
-
-    } else {
-
-        noResults.style.display =
-            "none";
-
-    }
-
+    currentPage = 1;
+    await loadMovies();
 }
 
 // Category filter

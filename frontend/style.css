@@ -149,24 +149,17 @@ z-index: 2;
 
 }
 
-/* Watch Now Button */
+.movie-card.homepage-card-link {
+    display: block;
+    color: inherit;
+    text-decoration: none;
+    min-height: 0;
+}
 
-.movie-card a[href^="https://"] {
-
-display: inline-block;
-
-margin-top: 15px;
-
-padding: 10px 20px;
-
-background-color: red;
-
-color: white;
-
-text-decoration: none;
-
-border-radius: 8px;
-
+.homepage-card-link .poster-link:hover {
+    display: inline-block;
+    transform: scale(1.12);
+    animation: shake 0.3s;
 }
 
 .movie-card a:hover {
@@ -326,9 +319,7 @@ cursor: pointer;
 
 .movie-details {
 
-display: flex;
-
-gap: 30px;
+display: flow-root;
 
 max-width: 900px;
 
@@ -344,7 +335,11 @@ border-radius: 15px;
 
 .movie-details img {
 
-width: 300px;
+width: 280px;
+max-width: 100%;
+height: auto;
+float: left;
+margin: 0 30px 20px 0;
 
 border-radius: 10px;
 
@@ -404,12 +399,31 @@ margin: 20px 0;
 
 .movie-meta {
 
+clear: both;
+
 margin-top: 20px;
 
 display: flex;
 
 gap: 20px;
 
+}
+
+#episodeContainer:not([hidden]) {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    clear: both;
+    margin-top: 20px;
+}
+
+#episodeContainer a {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    box-sizing: border-box;
+    text-align: center;
+    overflow-wrap: anywhere;
 }
 
 .movie-meta span {
@@ -643,12 +657,13 @@ line-height: 1.6;
 
     /* Movie details page */
 .movie-details {
-    flex-direction: column;
     margin: 20px 10px;
     padding: 20px;
 }
 
 .movie-details img {
+    float: none;
+    display: block;
     width: 100%;
     max-width: 300px;
     margin: 0 auto;
@@ -708,6 +723,19 @@ line-height: 1.6;
 }
 
 /* Watch Now at the very bottom */
+#episodeContainer {
+    grid-column: 1 / -1;
+    grid-row: 7;
+}
+
+#episodeContainer:not([hidden]) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+#episodeContainer a {
+    padding: 10px;
+}
+
 #watchButton {
     grid-column: 1 / -1;
     grid-row: 7;
@@ -764,14 +792,6 @@ line-height: 1.6;
     .movie-rating {
     font-size: 9px;
      }
-    /* Watch Now button */
-    .movie-card a[href^="https://"] {
-    margin-top: 3px;
-    padding: 5px 8px;
-    font-size: 13px;
-    border-radius: 5px;
-    background-color: #ee1010;
-}
  #pagination {
     gap: 5px;
     margin: 20px 0;

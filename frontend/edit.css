@@ -1,3 +1,40 @@
+#episodeManagementSection .episode-management-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid #ddd;
+}
+
+#episodeManagementSection .episode-mapping-status {
+    flex: 1;
+    min-width: 100px;
+}
+
+#episodeManagementSection .episode-management-row button,
+#refreshEpisodesButton {
+    margin-top: 0;
+    padding: 6px 10px;
+    font-size: 14px;
+}
+
+#mappedEpisodeList {
+    margin: 12px 0;
+}
+
+.episode-management-columns {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 768px) {
+    .episode-management-columns {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: 20px;
+    }
+}
+
 body {
     font-family: Arial, sans-serif;
     max-width: 700px;
