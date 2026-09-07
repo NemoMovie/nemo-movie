@@ -160,6 +160,7 @@ h1 {
     grid-template-columns:
         60px
         1fr
+        80px
         100px
         80px
         150px;
@@ -362,6 +363,7 @@ h1 {
     grid-template-columns:
         60px
         1fr
+        80px
         100px
         80px
         150px;
@@ -388,7 +390,7 @@ h1 {
 
 .admin-movie-item button:first-of-type {
 
-    grid-column: 5;
+    grid-column: 6;
 
     grid-row: 1;
 
@@ -397,7 +399,7 @@ h1 {
 
 .admin-movie-item button:last-of-type {
 
-    grid-column: 5;
+    grid-column: 6;
 
     grid-row: 1;
 

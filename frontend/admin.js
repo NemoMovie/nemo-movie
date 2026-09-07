@@ -335,8 +335,12 @@ function displayMovies(movieList) {
             );
 
 
-            // Type
+            // Movie ID
+            const movieId = document.createElement("span");
+            movieId.textContent = movie.id;
+            movieItem.appendChild(movieId);
 
+            // Type
             const movieType =
                 document.createElement("span");
 
