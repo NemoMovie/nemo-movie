@@ -283,7 +283,7 @@ bot.onText(/^\/myid\s*$/, async function(msg) {
 });
 
 bot.onText(/^\/start series_(\d+)_ep_(\d+)\s*$/, async function(msg, match) {
-    await deliverEpisode(msg.chat.id, match[1], match[2]);
+    await deliverEpisode(msg.chat.id, match[1], match[2], true);
 });
 
 bot.onText(/\/start movie_(\d+)/, async function(msg, match) {
@@ -446,9 +446,18 @@ async function deliverMovie(chatId, movieId, includeDetail = false) {
     });
 }
 
-async function deliverEpisode(chatId, seriesId, episodeNumber) {
+async function deliverEpisode(chatId, seriesId, episodeNumber, includeDetail = false) {
     return protectedDelivery(chatId, `series:${Number(seriesId)}:episode:${Number(episodeNumber)}`,
-        () => sendEpisode(chatId, seriesId, episodeNumber));
+        async () => {
+            if (includeDetail) {
+                try {
+                    await showDetail(chatId, seriesId);
+                } catch {
+                    console.error("Series deep-link detail failed.");
+                }
+            }
+            return sendEpisode(chatId, seriesId, episodeNumber);
+        });
 }
 
 async function sendEpisode(chatId, seriesId, episodeNumber) {
