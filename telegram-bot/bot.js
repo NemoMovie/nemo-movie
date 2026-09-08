@@ -455,7 +455,7 @@ async function sendEpisode(chatId, seriesId, episodeNumber) {
 
     try {
         const response = await fetch(
-            `http://localhost:3000/api/series/${seriesId}/episodes/${episodeNumber}/telegram`
+            `${mappingBackendUrl}/api/series/${seriesId}/episodes/${episodeNumber}/telegram`
         );
 
         if (response.status === 404) {
@@ -514,7 +514,7 @@ async function sendMovie(chatId, movieId) {
     try {
 
         const response = await fetch(
-            `http://localhost:3000/api/movies/${movieId}/telegram`
+            `${mappingBackendUrl}/api/movies/${movieId}/telegram`
         );
 
         if (!response.ok) {

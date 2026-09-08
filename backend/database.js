@@ -1,6 +1,11 @@
+import "dotenv/config";
 import Database from "better-sqlite3";
+import path from "path";
+import { fileURLToPath } from "url";
 
-const db = new Database("movies.db");
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const databasePath = path.resolve(__dirname, process.env.DATABASE_PATH || "movies.db");
+const db = new Database(databasePath);
 
 const columns = db
     .prepare("PRAGMA table_info(movies)")

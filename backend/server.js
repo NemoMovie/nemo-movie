@@ -1,6 +1,5 @@
 import "dotenv/config";
 import express from "express";
-import cors from "cors";
 import session from "express-session";
 import Database from "better-sqlite3";
 import path from "path";
@@ -11,30 +10,34 @@ import { timingSafeEqual } from "node:crypto";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const databasePath = path.resolve(__dirname, process.env.DATABASE_PATH || "movies.db");
+const uploadsDir = path.resolve(__dirname, process.env.UPLOADS_DIR || "uploads");
+fs.mkdirSync(uploadsDir, { recursive: true });
+const isProduction = process.env.NODE_ENV === "production";
 
 const app = express();
 
 app.use(express.json());
 
-app.use(
-    cors({
-        origin: "http://127.0.0.1:5500",
-        credentials: true
-    })
-);
+if (isProduction) app.set("trust proxy", 1);
 
 app.use(
     session({
         secret: process.env.SESSION_SECRET,
         resave: false,
-        saveUninitialized: false
+        saveUninitialized: false,
+        cookie: {
+            secure: isProduction,
+            httpOnly: true,
+            sameSite: "lax"
+        }
     })
 );
 
 app.use(
     "/uploads",
     express.static(
-        path.join(__dirname, "uploads")
+        uploadsDir
     )
 );
 
@@ -48,7 +51,7 @@ app.use(
 // Database
 
 const db = new Database(
-    path.join(__dirname, "movies.db")
+    databasePath
 );
 const columns = db
     .prepare("PRAGMA table_info(movies)")
@@ -89,7 +92,7 @@ const storage = multer.diskStorage({
 
         cb(
             null,
-            path.join(__dirname, "uploads")
+            uploadsDir
         );
 
     },
@@ -907,8 +910,7 @@ app.put(
 
             const oldPosterPath =
                 path.join(
-                    __dirname,
-                    "uploads",
+                    uploadsDir,
                     oldMovie.poster.replace(
                         "/uploads/",
                         ""
