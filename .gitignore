@@ -4,3 +4,4 @@ backend/movies-backup-*.db
 backend/uploads/
 backend/.env 
 telegram-bot/.env
+backend/uploads-backup-*/

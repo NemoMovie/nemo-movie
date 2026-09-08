@@ -6,7 +6,13 @@ import path from "path";
 import multer from "multer";
 import fs from "fs";
 import { fileURLToPath } from "url";
-import { timingSafeEqual } from "node:crypto";
+import { timingSafeEqual, randomUUID } from "node:crypto";
+
+if (typeof process.env.ADMIN_USERNAME !== "string" || !process.env.ADMIN_USERNAME.trim() ||
+    typeof process.env.ADMIN_PASSWORD !== "string" || process.env.ADMIN_PASSWORD.length === 0) {
+    console.error("Admin credentials are not configured.");
+    process.exit(1);
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,9 +23,29 @@ const isProduction = process.env.NODE_ENV === "production";
 
 const app = express();
 
+app.use(function(req, res, next) {
+    res.setHeader("Content-Security-Policy", "frame-ancestors 'none'");
+    next();
+});
+
 app.use(express.json());
 
 if (isProduction) app.set("trust proxy", 1);
+
+function requireSameOrigin(req, res, next) {
+    const origin = req.get("Origin");
+    if (origin === undefined) return next();
+    try {
+        // req.protocol respects the existing trusted proxy's HTTPS header.
+        const expected = new URL(`${req.protocol}://${req.get("Host")}`).origin;
+        const supplied = new URL(origin);
+        if (["http:", "https:"].includes(supplied.protocol) &&
+            origin === supplied.origin && supplied.origin === expected) return next();
+    } catch {
+        // Malformed/null origins are rejected without exposing request values.
+    }
+    return res.status(403).json({ message: "Request origin rejected" });
+}
 
 app.use(
     session({
@@ -29,7 +55,8 @@ app.use(
         cookie: {
             secure: isProduction,
             httpOnly: true,
-            sameSite: "lax"
+            sameSite: "lax",
+            maxAge: 8 * 60 * 60 * 1000
         }
     })
 );
@@ -86,46 +113,69 @@ if (!hasTelegramMessageId) {
 
 // Image upload settings
 
-const storage = multer.diskStorage({
-
-    destination: function(req, file, cb) {
-
-        cb(
-            null,
-            uploadsDir
-        );
-
-    },
-
-    filename: function(req, file, cb) {
-
-        cb(
-            null,
-            Date.now() + "-" + file.originalname
-        );
-
-    }
-
-});
-
 const upload = multer({
-    storage: storage
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024, files: 1 }
 });
+
+function posterExtension(buffer) {
+    if (buffer.length >= 3 && buffer.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff]))) return ".jpg";
+    if (buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return ".png";
+    if (buffer.length >= 16 && buffer.toString("ascii", 0, 4) === "RIFF" &&
+        buffer.toString("ascii", 8, 12) === "WEBP" &&
+        ["VP8 ", "VP8L", "VP8X"].includes(buffer.toString("ascii", 12, 16))) return ".webp";
+    return null;
+}
+
+function receivePoster(req, res, next) {
+    upload.single("poster")(req, res, error => {
+        if (error) return res.status(400).json({ message: "Upload a JPEG, PNG or WebP poster no larger than 10 MB." });
+        next();
+    });
+}
 
 
 // Admin login
 
-app.post("/api/login", function(req, res) {
+const loginFailures = new Map();
+const LOGIN_FAILURE_LIMIT = 5;
+const LOGIN_FAILURE_WINDOW_MS = 15 * 60 * 1000;
+const loginCleanup = setInterval(() => {
+    const now = Date.now();
+    for (const [ip, record] of loginFailures) {
+        if (record.expiresAt <= now) loginFailures.delete(ip);
+    }
+}, 60 * 1000);
+loginCleanup.unref();
+
+app.post("/api/login", requireSameOrigin, function(req, res) {
+    const ip = req.ip;
+    const now = Date.now();
+    let failures = loginFailures.get(ip);
+    if (failures && failures.expiresAt <= now) {
+        loginFailures.delete(ip);
+        failures = undefined;
+    }
+    if (failures && failures.count >= LOGIN_FAILURE_LIMIT) {
+        return res.status(429).json({ message: "Too many login attempts. Please try again later." });
+    }
 
     const {
         username,
         password
-    } = req.body;
+    } = req.body || {};
 
     if (
+        typeof username !== "string" || username.trim() === "" ||
+        typeof password !== "string" || password.length === 0 ||
         username !== process.env.ADMIN_USERNAME ||
         password !== process.env.ADMIN_PASSWORD
     ) {
+        if (!failures) {
+            failures = { count: 0, expiresAt: now + LOGIN_FAILURE_WINDOW_MS };
+            loginFailures.set(ip, failures);
+        }
+        failures.count++;
 
         return res.status(401).json({
             message: "Invalid username or password"
@@ -133,10 +183,15 @@ app.post("/api/login", function(req, res) {
 
     }
 
-    req.session.isAdmin = true;
-
-    res.json({
-        message: "Login successful"
+    loginFailures.delete(ip);
+    req.session.regenerate(function(err) {
+        if (err) {
+            return res.status(500).json({ message: "Login failed" });
+        }
+        req.session.isAdmin = true;
+        res.json({
+            message: "Login successful"
+        });
     });
 
 });
@@ -163,7 +218,7 @@ app.get("/api/admin/check", function(req, res) {
 
 // Admin logout
 
-app.post("/api/logout", function(req, res) {
+app.post("/api/logout", requireSameOrigin, function(req, res) {
 
     req.session.destroy(function(err) {
 
@@ -175,6 +230,12 @@ app.post("/api/logout", function(req, res) {
 
         }
 
+        res.clearCookie("connect.sid", {
+            path: "/",
+            secure: isProduction,
+            httpOnly: true,
+            sameSite: "lax"
+        });
         res.json({
             message: "Logout successful"
         });
@@ -205,24 +266,32 @@ function requireAdmin(req, res, next) {
 
 app.get("/api/movies", function(req, res) {
 
-    const page =
-        Number(req.query.page) || 1;
-
-    const limit =
-        Number(req.query.limit) || 20;
-
-    const search =
-        (req.query.search || "").trim();
-
-    const type =
-        (req.query.type || "").trim();
-
-    const category =
-        (req.query.category || "").trim();
-
-
-    const offset =
-        (page - 1) * limit;
+    const parsePositiveInteger = (value, fallback) => {
+        if (value === undefined) return fallback;
+        if (typeof value !== "string" || !/^\d+$/.test(value)) return NaN;
+        const number = Number(value);
+        return Number.isSafeInteger(number) && number > 0 ? number : NaN;
+    };
+    const page = parsePositiveInteger(req.query.page, 1);
+    const limit = parsePositiveInteger(req.query.limit, 20);
+    if (!Number.isSafeInteger(page) || !Number.isSafeInteger(limit) || limit > 500) {
+        return res.status(400).json({ message: "Invalid page or limit" });
+    }
+    for (const field of ["search", "type", "category"]) {
+        if (req.query[field] !== undefined && typeof req.query[field] !== "string") {
+            return res.status(400).json({ message: "Invalid search or filter" });
+        }
+    }
+    const search = (req.query.search ?? "").trim();
+    const type = (req.query.type ?? "").trim();
+    const category = (req.query.category ?? "").trim();
+    if (search.length > 150) {
+        return res.status(400).json({ message: "Search must not exceed 150 characters" });
+    }
+    const offset = (page - 1) * limit;
+    if (!Number.isSafeInteger(offset) || offset < 0) {
+        return res.status(400).json({ message: "Invalid pagination offset" });
+    }
 
 
     // Build filter conditions
@@ -517,6 +586,7 @@ app.get("/api/series/:seriesId/episodes/:episodeNumber/telegram", function(req, 
 
 app.post(
     "/api/movies",
+    requireSameOrigin,
     requireAdmin,
     function(req, res) {
 
@@ -623,9 +693,10 @@ app.post(
 
 app.post(
     "/api/upload",
+    requireSameOrigin,
     requireAdmin,
-    upload.single("poster"),
-    function(req, res) {
+    receivePoster,
+    async function(req, res) {
 
         if (!req.file) {
 
@@ -635,6 +706,21 @@ app.post(
 
         }
 
+        const extension = posterExtension(req.file.buffer);
+        if (!extension) {
+            return res.status(400).json({ message: "Upload a valid JPEG, PNG or WebP poster." });
+        }
+        const filename = randomUUID() + extension;
+        const destination = path.join(uploadsDir, filename);
+        try {
+            await fs.promises.writeFile(destination, req.file.buffer, { flag: "wx" });
+        } catch (error) {
+            if (error.code !== "EEXIST") {
+                await fs.promises.unlink(destination).catch(() => {});
+            }
+            return res.status(500).json({ message: "Poster could not be saved." });
+        }
+
         res.json({
 
             message:
@@ -642,7 +728,7 @@ app.post(
 
             posterUrl:
                 "/uploads/" +
-                req.file.filename
+                filename
 
         });
 
@@ -738,7 +824,7 @@ function requireSeriesEpisode(req, res, next) {
     next();
 }
 
-app.put("/api/admin/series/:seriesId/episodes/:episodeNumber", requireAdmin, requireSeriesEpisode, function(req, res) {
+app.put("/api/admin/series/:seriesId/episodes/:episodeNumber", requireSameOrigin, requireAdmin, requireSeriesEpisode, function(req, res) {
     const { telegram_chat_id: chatId, telegram_message_id: messageId } = req.body || {};
     if (typeof chatId !== "string" || chatId.trim() === "") {
         return res.status(400).json({ message: "Telegram chat ID must be nonempty text" });
@@ -758,7 +844,7 @@ app.put("/api/admin/series/:seriesId/episodes/:episodeNumber", requireAdmin, req
     res.json({ message: "Episode mapping saved" });
 });
 
-app.delete("/api/admin/series/:seriesId/episodes/:episodeNumber", requireAdmin, requireSeriesEpisode, function(req, res) {
+app.delete("/api/admin/series/:seriesId/episodes/:episodeNumber", requireSameOrigin, requireAdmin, requireSeriesEpisode, function(req, res) {
     const result = db.prepare(`
         DELETE FROM series_episodes WHERE series_id = ? AND episode_number = ?
     `).run(res.locals.seriesId, res.locals.episodeNumber);
@@ -771,7 +857,7 @@ app.delete("/api/admin/series/:seriesId/episodes/:episodeNumber", requireAdmin, 
 
 // Update movie Telegram mapping independently of metadata
 
-app.put("/api/admin/movies/:id/telegram", requireAdmin, function(req, res) {
+app.put("/api/admin/movies/:id/telegram", requireSameOrigin, requireAdmin, function(req, res) {
     const movieId = Number(req.params.id);
     const { telegram_chat_id: chatId, telegram_message_id: messageId } = req.body || {};
 
@@ -811,6 +897,7 @@ app.put("/api/admin/movies/:id/telegram", requireAdmin, function(req, res) {
 
 app.put(
     "/api/movies/:id",
+    requireSameOrigin,
     requireAdmin,
     function(req, res) {
 
@@ -901,31 +988,25 @@ app.put(
 
         if (
             oldMovie &&
-            oldMovie.poster &&
+            typeof oldMovie.poster === "string" &&
             oldMovie.poster.startsWith(
                 "/uploads/"
             ) &&
             oldMovie.poster !== poster
         ) {
 
-            const oldPosterPath =
-                path.join(
-                    uploadsDir,
-                    oldMovie.poster.replace(
-                        "/uploads/",
-                        ""
-                    )
-                );
-
-
-            if (
-                fs.existsSync(oldPosterPath)
-            ) {
-
-                fs.unlinkSync(
-                    oldPosterPath
-                );
-
+            const filename = oldMovie.poster.slice("/uploads/".length);
+            // Only direct image filenames; reject encoded paths, separators and hidden files.
+            if (/^[^./\\%:\x00-\x1f\x7f][^/\\%:\x00-\x1f\x7f]*\.(?:jpe?g|png|webp)$/i.test(filename)) {
+                const oldPosterPath = path.resolve(uploadsDir, filename);
+                if (path.dirname(oldPosterPath) === path.resolve(uploadsDir) &&
+                    fs.existsSync(oldPosterPath)) {
+                    const info = fs.lstatSync(oldPosterPath);
+                    if (info.isFile() && !info.isSymbolicLink() &&
+                        path.dirname(fs.realpathSync(oldPosterPath)) === fs.realpathSync(uploadsDir)) {
+                        fs.unlinkSync(oldPosterPath);
+                    }
+                }
             }
 
         }
@@ -950,6 +1031,7 @@ app.put(
 
 app.delete(
     "/api/movies/:id",
+    requireSameOrigin,
     requireAdmin,
     function(req, res) {
 
@@ -982,6 +1064,25 @@ app.delete(
     }
 );
 
+
+// Final fallback: never expose unexpected error details in responses or logs.
+app.use(function(err, req, res, next) {
+    if (res.headersSent) {
+        console.error("Request failed after response started.");
+        res.destroy();
+        return;
+    }
+    // Preserve known body-parser client errors without echoing their messages/body.
+    const status = err?.type === "entity.parse.failed" && err.status === 400 ? 400
+        : err?.type === "entity.too.large" && err.status === 413 ? 413
+        : 500;
+    console.error("Request failed. HTTP status:", status);
+    res.status(status).json({
+        message: status === 400 ? "Invalid request body"
+            : status === 413 ? "Request body too large"
+            : "Internal server error"
+    });
+});
 
 const PORT =
     process.env.PORT || 3000;
