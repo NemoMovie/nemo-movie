@@ -19,13 +19,43 @@ const bot = new TelegramBot(token, {
 });
 
 // Search/details never deliver media; only explicit delivery callbacks do.
+const TELEGRAM_MAX_RETRIES = 3;
+const TELEGRAM_RETRY_MARGIN_MS = 250;
+let telegramPauseUntil = 0;
+
+function isTelegramRateLimit(error) {
+    return error?.response?.statusCode === 429 || error?.response?.body?.error_code === 429;
+}
+
+async function telegramSend(method, ...args) {
+    for (let attempt = 0; ; attempt++) {
+        // Recheck after waking: another request may have extended the pause.
+        while (telegramPauseUntil > Date.now()) {
+            await new Promise(resolve => setTimeout(resolve, telegramPauseUntil - Date.now()));
+        }
+        try {
+            return await bot[method](...args);
+        } catch (error) {
+            if (!isTelegramRateLimit(error)) throw error;
+            const seconds = error.response?.body?.parameters?.retry_after;
+            const validDelay = typeof seconds === "number" && Number.isFinite(seconds) &&
+                seconds > 0 && seconds <= 3600;
+            // Malformed delays get a conservative pause, but no automatic retry.
+            const delay = validDelay ? Math.ceil(seconds * 1000) : 1000;
+            telegramPauseUntil = Math.max(telegramPauseUntil,
+                Date.now() + delay + TELEGRAM_RETRY_MARGIN_MS);
+            if (!validDelay || attempt >= TELEGRAM_MAX_RETRIES) throw error;
+        }
+    }
+}
+
 function positiveId(value) {
     return /^\d+$/.test(String(value)) && Number.isSafeInteger(Number(value)) && Number(value) > 0;
 }
 
 async function searchFeedback(chatId, text, options) {
     try {
-        await bot.sendMessage(chatId, text, options);
+        await telegramSend("sendMessage", chatId, text, options);
     } catch {
         console.error("Search/detail feedback could not be sent.");
     }
@@ -96,7 +126,21 @@ bot.on("message", async function(msg) {
         return;
     }
     try {
-        let results = catalogueRows(await readBackend(`/api/movies?search=${encodeURIComponent(query)}&page=1&limit=5`)).slice(0, 5);
+        let results;
+        if (query.length <= 3) {
+            results = [];
+            const exactTitle = query.toLowerCase();
+            // Scan pages so partial matches cannot crowd out an exact title.
+            for (let page = 1; ; page++) {
+                const data = await readBackend(`/api/movies?page=${page}&limit=100`);
+                const rows = catalogueRows(data);
+                results.push(...rows.filter(movie => movie.title.trim().toLowerCase() === exactTitle));
+                if (results.length >= 5 || rows.length < 100 || page * 100 >= data.total) break;
+            }
+            results = results.slice(0, 5);
+        } else {
+            results = catalogueRows(await readBackend(`/api/movies?search=${encodeURIComponent(query)}&page=1&limit=5`)).slice(0, 5);
+        }
         let heading = "Choose a movie or series:";
         if (!results.length && query.length >= 4) {
             const candidates = catalogueRows(await readBackend("/api/movies?page=1&limit=500")).slice(0, 500);
@@ -130,12 +174,13 @@ async function sendDetail(chatId, poster, text, keyboard) {
     if (url) {
         try {
             if (text.length <= 1024) {
-                await bot.sendPhoto(chatId, url, { ...options, caption: text });
+                await telegramSend("sendPhoto", chatId, url, { ...options, caption: text });
                 return;
             }
-            await bot.sendPhoto(chatId, url);
-        } catch {
+            await telegramSend("sendPhoto", chatId, url);
+        } catch (error) {
             // Do not log URLs or Telegram error objects, which may contain credentials.
+            if (isTelegramRateLimit(error)) throw error;
             console.error("Detail poster could not be sent; using text details.");
         }
     }
@@ -149,7 +194,7 @@ async function sendDetail(chatId, poster, text, keyboard) {
             const last = remaining.charCodeAt(end - 1);
             if (last >= 0xD800 && last <= 0xDBFF) end--;
         }
-        await bot.sendMessage(chatId, remaining.slice(0, end),
+        await telegramSend("sendMessage", chatId, remaining.slice(0, end),
             end === remaining.length ? options : undefined);
         remaining = remaining.slice(end);
     }
@@ -242,13 +287,7 @@ bot.onText(/^\/start series_(\d+)_ep_(\d+)\s*$/, async function(msg, match) {
 });
 
 bot.onText(/\/start movie_(\d+)/, async function(msg, match) {
-    try {
-        await showDetail(msg.chat.id, match[1], 1, false);
-    } catch {
-        console.error("Movie deep-link detail failed. Movie ID:", match[1]);
-        // A detail failure must not prevent the existing movie delivery attempt.
-    }
-    await deliverMovie(msg.chat.id, match[1]);
+    await deliverMovie(msg.chat.id, match[1], true);
 });
 
 bot.on("message", async function(msg) {
@@ -264,7 +303,7 @@ bot.on("message", async function(msg) {
     if (msg.sender_chat || !msg.from || !positiveId(msg.from.id) ||
         !authorizedTelegramUserIds.has(String(Number(msg.from.id)))) {
         try {
-            await bot.sendMessage(msg.chat.id, "🔒 You are not authorized to map media.",
+            await telegramSend("sendMessage", msg.chat.id, "🔒 You are not authorized to map media.",
                 { reply_to_message_id: msg.message_id });
         } catch {
             console.error("Mapping authorization reply failed.");
@@ -277,7 +316,7 @@ bot.on("message", async function(msg) {
     const seriesMatch = caption.match(/^series_(\d+)_ep_(\d+)$/);
     if (!movieMatch && !seriesMatch) {
         try {
-            await bot.sendMessage(msg.chat.id,
+            await telegramSend("sendMessage", msg.chat.id,
                 "⚠️ Invalid mapping caption.\nUse:\nmovie_<id>\nor\nseries_<seriesId>_ep_<episodeNumber>\n\nExample:\nmovie_41\nseries_26_ep_1",
                 { reply_to_message_id: msg.message_id });
         } catch {
@@ -333,12 +372,86 @@ bot.on("message", async function(msg) {
     }
 
     try {
-        await bot.sendMessage(msg.chat.id, feedback, { reply_to_message_id: msg.message_id });
+        await telegramSend("sendMessage", msg.chat.id, feedback, { reply_to_message_id: msg.message_id });
     } catch {
         console.error("Automatic mapping feedback reply failed.");
     }
 });
+const deliveryStates = new Map();
+const deliveryQueue = [];
+const DELIVERY_CONCURRENCY = 5;
+const MAX_QUEUED_DELIVERIES = 100;
+const DELIVERY_COOLDOWN_MS = 30000;
+let runningDeliveries = 0;
+
+function drainDeliveries() {
+    while (runningDeliveries < DELIVERY_CONCURRENCY && deliveryQueue.length) {
+        const { operation, resolve, reject } = deliveryQueue.shift();
+        runningDeliveries++;
+        Promise.resolve().then(operation).then(resolve, reject).finally(() => {
+            runningDeliveries--;
+            drainDeliveries();
+        });
+    }
+}
+
+async function protectedDelivery(chatId, contentKey, operation) {
+    const key = `${chatId}:${contentKey}`;
+    const state = deliveryStates.get(key);
+    if (state && (state.active || state.until > Date.now())) {
+        await searchFeedback(chatId, state.active
+            ? "⏳ This title is already being delivered. Please wait."
+            : "⏳ This title was just sent. Please wait a moment before requesting it again.");
+        return;
+    }
+    if (deliveryQueue.length >= MAX_QUEUED_DELIVERIES) {
+        await searchFeedback(chatId, "⏳ Delivery is busy. Please try again shortly.");
+        return;
+    }
+    const entry = { active: true, until: 0 };
+    deliveryStates.set(key, entry);
+    let delivered = false;
+    try {
+        delivered = await new Promise((resolve, reject) => {
+            deliveryQueue.push({ operation, resolve, reject });
+            drainDeliveries();
+        });
+    } catch {
+        console.error("Queued delivery failed.");
+        await searchFeedback(chatId, "Something went wrong. Please try again.");
+    } finally {
+        if (delivered === true) {
+            entry.active = false;
+            entry.until = Date.now() + DELIVERY_COOLDOWN_MS;
+            const cleanup = setTimeout(() => {
+                if (deliveryStates.get(key) === entry) deliveryStates.delete(key);
+            }, DELIVERY_COOLDOWN_MS);
+            cleanup.unref();
+        } else {
+            deliveryStates.delete(key);
+        }
+    }
+}
+
+async function deliverMovie(chatId, movieId, includeDetail = false) {
+    return protectedDelivery(chatId, `movie:${Number(movieId)}`, async () => {
+        if (includeDetail) {
+            try {
+                await showDetail(chatId, movieId, 1, false);
+            } catch {
+                console.error("Movie deep-link detail failed.");
+            }
+        }
+        return sendMovie(chatId, movieId);
+    });
+}
+
 async function deliverEpisode(chatId, seriesId, episodeNumber) {
+    return protectedDelivery(chatId, `series:${Number(seriesId)}:episode:${Number(episodeNumber)}`,
+        () => sendEpisode(chatId, seriesId, episodeNumber));
+}
+
+async function sendEpisode(chatId, seriesId, episodeNumber) {
 
     try {
         const response = await fetch(
@@ -346,7 +459,7 @@ async function deliverEpisode(chatId, seriesId, episodeNumber) {
         );
 
         if (response.status === 404) {
-            await bot.sendMessage(chatId, "Episode not found.");
+            await telegramSend("sendMessage", chatId, "Episode not found.");
             return;
         }
 
@@ -374,7 +487,7 @@ async function deliverEpisode(chatId, seriesId, episodeNumber) {
              `${series.title} (${series.year}) _Ep_${episodeNumber}` +
              (isFinalEpisode ? "_End" : "");
 
-        await bot.copyMessage(
+        await telegramSend("copyMessage",
              chatId,
              Number(episode.telegram_chat_id),
              episode.telegram_message_id,
@@ -384,16 +497,17 @@ async function deliverEpisode(chatId, seriesId, episodeNumber) {
         );
 
         console.log("Episode sent: Series ID:", seriesId, "Episode number:", episodeNumber);
+        return true;
     } catch {
         console.error("Episode lookup or delivery failed. Series ID:", seriesId, "Episode number:", episodeNumber);
-        await bot.sendMessage(
+        await searchFeedback(
             chatId,
             "Something went wrong. Please try again."
         );
     }
 }
 
-async function deliverMovie(chatId, movieId) {
+async function sendMovie(chatId, movieId) {
 
     console.log("Requested Movie ID:", movieId);
 
@@ -405,7 +519,7 @@ async function deliverMovie(chatId, movieId) {
 
         if (!response.ok) {
 
-            bot.sendMessage(
+            await searchFeedback(
                 chatId,
                 "Movie not found."
             );
@@ -420,7 +534,7 @@ async function deliverMovie(chatId, movieId) {
             !movie.telegram_message_id
         ) {
 
-            bot.sendMessage(
+            await searchFeedback(
                 chatId,
                 "This movie is not available yet."
             );
@@ -440,7 +554,7 @@ async function deliverMovie(chatId, movieId) {
        const caption =
           `${movieDetails.title} (${movieDetails.year})`;
 
-        await bot.copyMessage(
+        await telegramSend("copyMessage",
             chatId,
             Number(movie.telegram_chat_id),
             movie.telegram_message_id,
@@ -453,6 +567,7 @@ async function deliverMovie(chatId, movieId) {
             "Movie sent:",
             movie.title
         );
+        return true;
 
     } catch {
 
@@ -461,7 +576,7 @@ async function deliverMovie(chatId, movieId) {
             movieId
         );
 
-        bot.sendMessage(
+        await searchFeedback(
             chatId,
             "Something went wrong. Please try again."
         );
