@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import session from "express-session";
+import SQLiteSessionStore from "./session-store.js";
 import Database from "better-sqlite3";
 import path from "path";
 import multer from "multer";
@@ -59,8 +60,25 @@ function requireSameOrigin(req, res, next) {
     return res.status(403).json({ message: "Request origin rejected" });
 }
 
+let sessionStore;
+try {
+    const sessionDatabasePath = path.resolve(__dirname, process.env.SESSION_DATABASE_PATH || "sessions.db");
+    const relativeTo = root => path.relative(path.resolve(root), sessionDatabasePath);
+    for (const root of [uploadsDir, path.join(__dirname, "../frontend")]) {
+        const relative = relativeTo(root);
+        if (relative === "" || (!relative.startsWith(".." + path.sep) && relative !== ".." && !path.isAbsolute(relative))) {
+            throw new Error();
+        }
+    }
+    sessionStore = new SQLiteSessionStore({ filename: sessionDatabasePath, movieDatabasePath: databasePath });
+} catch {
+    console.error("Session store could not be initialized.");
+    process.exit(1);
+}
+
 app.use(
     session({
+        store: sessionStore,
         secret: process.env.SESSION_SECRET,
         resave: false,
         saveUninitialized: false,
@@ -1100,7 +1118,7 @@ const PORT =
     process.env.PORT || 3000;
 
 
-app.listen(
+const server = app.listen(
     PORT,
     function() {
 
@@ -1110,3 +1128,14 @@ app.listen(
 
     }
 );
+
+function shutdown() {
+    server.close(() => {
+        sessionStore.close(error => {
+            if (error) console.error("Session store shutdown failed.");
+            process.exit(error ? 1 : 0);
+        });
+    });
+}
+process.once("SIGINT", shutdown);
+process.once("SIGTERM", shutdown);

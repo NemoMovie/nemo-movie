@@ -1,4 +1,8 @@
 node_modules/
+backend/sessions.db
+backend/sessions.db-journal
+backend/sessions.db-wal
+backend/sessions.db-shm
 backend/movies.db
 backend/movies-backup-*.db
 backend/uploads/
