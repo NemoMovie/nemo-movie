@@ -20,6 +20,17 @@ const databasePath = path.resolve(__dirname, process.env.DATABASE_PATH || "movie
 const uploadsDir = path.resolve(__dirname, process.env.UPLOADS_DIR || "uploads");
 fs.mkdirSync(uploadsDir, { recursive: true });
 const isProduction = process.env.NODE_ENV === "production";
+let publicOrigin;
+if (isProduction) {
+    try {
+        const configuredOrigin = new URL(process.env.PUBLIC_ORIGIN);
+        if (!["http:", "https:"].includes(configuredOrigin.protocol)) throw new Error();
+        publicOrigin = configuredOrigin.origin;
+    } catch {
+        console.error("Public origin is not configured correctly.");
+        process.exit(1);
+    }
+}
 
 const app = express();
 
@@ -37,7 +48,8 @@ function requireSameOrigin(req, res, next) {
     if (origin === undefined) return next();
     try {
         // req.protocol respects the existing trusted proxy's HTTPS header.
-        const expected = new URL(`${req.protocol}://${req.get("Host")}`).origin;
+        const expected = isProduction ? publicOrigin
+            : new URL(`${req.protocol}://${req.get("Host")}`).origin;
         const supplied = new URL(origin);
         if (["http:", "https:"].includes(supplied.protocol) &&
             origin === supplied.origin && supplied.origin === expected) return next();
