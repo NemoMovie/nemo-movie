@@ -227,6 +227,37 @@ flex-wrap: wrap;
 
 /* Navbar */
 
+.homepage-header {
+    display: block;
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.homepage-header > .navbar,
+.homepage-header > .category-filter {
+    position: static;
+    top: auto;
+    z-index: auto;
+}
+
+.navbar #title {
+    width: 161px;
+    max-width: 100%;
+    min-width: 0;
+    flex-shrink: 1;
+}
+
+.navbar-logo {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 56px;
+    max-width: 100%;
+    object-fit: contain;
+}
+
 .navbar {
 
 display: flex;
@@ -629,6 +660,14 @@ line-height: 1.6;
     }
 
     /* Navbar */
+    .navbar #title {
+        width: 126px;
+    }
+
+    .navbar-logo {
+        max-height: 44px;
+    }
+
     .navbar {
         flex-direction: column;
         gap: 6px;
@@ -751,9 +790,6 @@ line-height: 1.6;
         grid-template-columns: repeat(5, 1fr);
         gap: 6px;
         padding: 8px 6px;
-        position: sticky;
-        top: 100px;
-        z-index: 999;
     }
 
     .category-filter button {
