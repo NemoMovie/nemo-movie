@@ -37,9 +37,19 @@ if (isProduction) {
 }
 
 const app = express();
+app.disable("x-powered-by");
 
 app.use(function(req, res, next) {
     res.setHeader("Content-Security-Policy", "frame-ancestors 'none'");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    // Before parsing/authentication so sensitive error responses are also uncached.
+    const sensitiveApi = /^\/api\/(?:admin|internal)(?:\/|$)/i.test(req.path) ||
+        /^\/api\/(?:login|logout)\/?$/i.test(req.path) ||
+        /^\/api\/(?:movies\/[^/]+|series\/[^/]+\/episodes\/[^/]+)\/telegram\/?$/i.test(req.path);
+    const adminMutation = ["POST", "PUT", "DELETE"].includes(req.method) &&
+        /^\/api\/(?:movies(?:\/[^/]+)?|upload)\/?$/i.test(req.path);
+    if (sensitiveApi || adminMutation) res.setHeader("Cache-Control", "no-store");
     next();
 });
 
