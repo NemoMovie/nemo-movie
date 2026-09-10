@@ -14,6 +14,7 @@ import { timingSafeEqual, randomUUID } from "node:crypto";
 import SQLiteSessionStore from "./session-store.js";
 import { createAdminAuth } from "./admin-auth.js";
 import { validateDatabasePath } from "./bootstrap-admin.js";
+import { resolveMovieDatabasePath } from "./movie-database-path.js";
 
 const serverUrl = new URL("./server.js", import.meta.url);
 // Execute the actual production initialization and auth routes, not copied route implementations.
@@ -35,7 +36,8 @@ async function fixture(t) {
     let clock = Date.now();
     class Clock extends Date { static now() { return clock; } }
     const context = vm.createContext({ express, session, SQLiteSessionStore, Database, path, multer, fs,
-        fileURLToPath, timingSafeEqual, randomUUID, validateDatabasePath, Date: Clock,
+        fileURLToPath, timingSafeEqual, randomUUID, validateDatabasePath,
+        resolveMovieDatabasePath: directory => resolveMovieDatabasePath(directory, context.process.env), Date: Clock,
         createAdminAuth: options => { const store = createAdminAuth(options); wrappedAuth = { ...store }; return wrappedAuth; },
         setInterval, clearInterval,
         console: { log: message => logs.push(message), error: message => logs.push(message) },

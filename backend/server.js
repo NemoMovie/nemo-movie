@@ -5,6 +5,7 @@ import SQLiteSessionStore from "./session-store.js";
 import { createAdminAuth, validateNewUsername } from "./admin-auth.js";
 import { validateDatabasePath } from "./bootstrap-admin.js";
 import Database from "better-sqlite3";
+import { resolveMovieDatabasePath } from "./movie-database-path.js";
 import path from "path";
 import multer from "multer";
 import fs from "fs";
@@ -13,7 +14,7 @@ import { timingSafeEqual, randomUUID } from "node:crypto";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const databasePath = path.resolve(__dirname, process.env.DATABASE_PATH || "movies.db");
+const databasePath = resolveMovieDatabasePath(__dirname);
 let adminAuth;
 try {
     adminAuth = createAdminAuth({ filename: validateDatabasePath(process.env), requireExisting: true });

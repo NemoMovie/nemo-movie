@@ -1,10 +1,11 @@
 import "dotenv/config";
 import Database from "better-sqlite3";
+import { resolveMovieDatabasePath } from "./movie-database-path.js";
 import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const databasePath = path.resolve(__dirname, process.env.DATABASE_PATH || "movies.db");
+const databasePath = resolveMovieDatabasePath(__dirname);
 const db = new Database(databasePath);
 
 const columns = db
