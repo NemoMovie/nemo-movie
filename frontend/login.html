@@ -1,54 +1,65 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
 
-    <title>Admin Login</title>
+    <title>Nemo Movie Admin</title>
 
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0"
     >
 
-    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="login.css">
 </head>
 
 <body>
 
-    <h1>Admin Login</h1>
+    <main class="login-card" aria-labelledby="loginTitle">
+    <img class="login-logo" src="nemo-movie-logo.png" alt="Nemo Movie">
+    <h1 id="loginTitle">Nemo Movie Admin</h1>
+    <p class="login-subtitle">Sign in to manage your content</p>
 
     <form id="loginForm">
 
-        <label>
+        <label for="username">
             Username
         </label>
 
         <input
             type="text"
             id="username"
+            autocomplete="username"
+            autocapitalize="none"
+            spellcheck="false"
             required
         >
 
-        <label>
+        <label for="password">
             Password
         </label>
 
+        <div class="password-field">
         <input
             type="password"
             id="password"
+            autocomplete="current-password"
             required
         >
+        <button type="button" id="togglePassword" aria-controls="password" aria-label="Show password">Show</button>
+        </div>
 
-        <button type="submit">
+        <button type="submit" class="login-submit">
             Login
         </button>
 
-        <p id="loginMessage"></p>
+        <p id="loginMessage" role="alert" aria-atomic="true"></p>
 
     </form>
+    </main>
 
-    <script type="module" src="login.js"></script>
+    <script type="module" src="login.js?v=2"></script>
 
 </body>
 

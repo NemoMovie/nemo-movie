@@ -34,6 +34,26 @@ body {
 
 /* Page Title */
 
+.admin-header {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 25px;
+}
+
+.admin-header h1 {
+    margin: 0;
+}
+
+.admin-logo {
+    display: block;
+    width: auto;
+    height: 64px;
+    max-width: 100%;
+    object-fit: contain;
+}
+
 h1 {
 
     margin-bottom: 25px;
@@ -430,6 +450,10 @@ h1 {
 /* Mobile Admin Panel */
 
 @media (max-width: 700px) {
+
+    .admin-logo {
+        height: 48px;
+    }
 
     body {
 

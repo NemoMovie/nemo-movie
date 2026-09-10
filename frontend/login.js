@@ -6,6 +6,16 @@ const loginForm =
 const loginMessage =
     document.getElementById("loginMessage");
 
+const passwordInput = document.getElementById("password");
+const togglePassword = document.getElementById("togglePassword");
+
+togglePassword.addEventListener("click", function() {
+    const showPassword = passwordInput.type === "password";
+    passwordInput.type = showPassword ? "text" : "password";
+    togglePassword.textContent = showPassword ? "Hide" : "Show";
+    togglePassword.setAttribute("aria-label", showPassword ? "Hide password" : "Show password");
+});
+
 
 loginForm.addEventListener(
     "submit",
