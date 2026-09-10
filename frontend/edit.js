@@ -281,12 +281,16 @@ contentTypeSelect.addEventListener("change", updateSeriesStatusVisibility);
 async function loadMovie() {
 
     const response = await fetch(
-        API_URL + "/api/movies/" + movieId
+        API_URL + "/api/admin/movies/" + movieId,
+        { credentials: "include" }
     );
 
-    const movie = await response.json();
+    if (!response.ok) {
+        window.location.href = "login.html";
+        return;
+    }
 
-    console.log(movie);
+    const movie = await response.json();
 
 
     // Store current poster
@@ -589,7 +593,6 @@ editForm.addEventListener(
         const result =
             await response.json();
 
-        console.log(result);
 
 
         if (!response.ok) {

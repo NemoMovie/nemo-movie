@@ -623,6 +623,26 @@ function requireAdmin(req, res, next) {
 
 // GET movies with search, type, category, and pagination
 
+function requireMappingRead(req, res, next) {
+    const secret = process.env.MAPPING_API_SECRET;
+    if (!secret) {
+        return res.status(503).json({ message: "Mapping API is not configured" });
+    }
+    if (validAdminSession(req)) {
+        res.set("Cache-Control", "no-store");
+        return next();
+    }
+    const supplied = Buffer.from(req.get("Authorization") || "");
+    const expected = Buffer.from(`Bearer ${secret}`);
+    if (supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) {
+        return res.status(401).json({ message: "Mapping authentication required" });
+    }
+    res.set("Cache-Control", "no-store");
+    next();
+}
+
+const PUBLIC_MOVIE_FIELDS = "id, poster, title, genres, year, review, fileSize, quality, duration, rating, type, episodes, categories, series_status";
+
 app.get("/api/movies", function(req, res) {
 
     const parsePositiveInteger = (value, fallback) => {
@@ -736,7 +756,7 @@ app.get("/api/movies", function(req, res) {
     const movies =
         db
             .prepare(`
-                SELECT *
+                SELECT ${PUBLIC_MOVIE_FIELDS}
                 FROM movies
                 ${whereClause}
                 ORDER BY id DESC
@@ -788,6 +808,19 @@ app.get("/api/admin/movies", requireAdmin, function(req, res) {
 
 // GET one movie
 
+app.get("/api/admin/movies/:id", requireAdmin, function(req, res) {
+    res.set("Cache-Control", "no-store");
+    const movieId = Number(req.params.id);
+    if (!Number.isSafeInteger(movieId) || movieId <= 0) {
+        return res.status(400).json({ message: "Invalid movie ID" });
+    }
+    const movie = db.prepare("SELECT * FROM movies WHERE id = ?").get(movieId);
+    if (!movie) {
+        return res.status(404).json({ message: "Movie not found" });
+    }
+    res.json(movie);
+});
+
 app.get("/api/movies/:id", function(req, res) {
 
     const movieId =
@@ -806,7 +839,7 @@ app.get("/api/movies/:id", function(req, res) {
 
     const movie = db
         .prepare(
-            "SELECT * FROM movies WHERE id = ?"
+            `SELECT ${PUBLIC_MOVIE_FIELDS} FROM movies WHERE id = ?`
         )
         .get(movieId);
 
@@ -823,7 +856,7 @@ app.get("/api/movies/:id", function(req, res) {
 });
 // Get Telegram storage info
 
-app.get("/api/movies/:id/telegram", function(req, res) {
+app.get("/api/movies/:id/telegram", requireMappingRead, function(req, res) {
 
     const movieId = Number(req.params.id);
 
@@ -897,7 +930,7 @@ app.get("/api/series/:seriesId/episodes", function(req, res) {
 
 // Get Telegram storage info for one series episode
 
-app.get("/api/series/:seriesId/episodes/:episodeNumber/telegram", function(req, res) {
+app.get("/api/series/:seriesId/episodes/:episodeNumber/telegram", requireMappingRead, function(req, res) {
     const seriesId = Number(req.params.seriesId);
     const episodeNumber = Number(req.params.episodeNumber);
 

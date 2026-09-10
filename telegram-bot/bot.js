@@ -464,7 +464,8 @@ async function sendEpisode(chatId, seriesId, episodeNumber) {
 
     try {
         const response = await fetch(
-            `${mappingBackendUrl}/api/series/${seriesId}/episodes/${episodeNumber}/telegram`
+            `${mappingBackendUrl}/api/series/${seriesId}/episodes/${episodeNumber}/telegram`,
+            { headers: { Authorization: `Bearer ${process.env.MAPPING_API_SECRET}` } }
         );
 
         if (response.status === 404) {
@@ -523,7 +524,8 @@ async function sendMovie(chatId, movieId) {
     try {
 
         const response = await fetch(
-            `${mappingBackendUrl}/api/movies/${movieId}/telegram`
+            `${mappingBackendUrl}/api/movies/${movieId}/telegram`,
+            { headers: { Authorization: `Bearer ${process.env.MAPPING_API_SECRET}` } }
         );
 
         if (!response.ok) {
