@@ -1,4 +1,6 @@
 node_modules/
+admin-auth.db*
+admin-auth-backup-*
 backend/sessions.db
 backend/sessions.db-journal
 backend/sessions.db-wal

@@ -2,6 +2,8 @@ import "dotenv/config";
 import express from "express";
 import session from "express-session";
 import SQLiteSessionStore from "./session-store.js";
+import { createAdminAuth } from "./admin-auth.js";
+import { validateDatabasePath } from "./bootstrap-admin.js";
 import Database from "better-sqlite3";
 import path from "path";
 import multer from "multer";
@@ -9,15 +11,16 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import { timingSafeEqual, randomUUID } from "node:crypto";
 
-if (typeof process.env.ADMIN_USERNAME !== "string" || !process.env.ADMIN_USERNAME.trim() ||
-    typeof process.env.ADMIN_PASSWORD !== "string" || process.env.ADMIN_PASSWORD.length === 0) {
-    console.error("Admin credentials are not configured.");
-    process.exit(1);
-}
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const databasePath = path.resolve(__dirname, process.env.DATABASE_PATH || "movies.db");
+let adminAuth;
+try {
+    adminAuth = createAdminAuth({ filename: validateDatabasePath(process.env), requireExisting: true });
+} catch {
+    console.error("Admin credential storage is unavailable.");
+    process.exit(1);
+}
 const uploadsDir = path.resolve(__dirname, process.env.UPLOADS_DIR || "uploads");
 fs.mkdirSync(uploadsDir, { recursive: true });
 const isProduction = process.env.NODE_ENV === "production";
@@ -178,7 +181,7 @@ const loginCleanup = setInterval(() => {
 }, 60 * 1000);
 loginCleanup.unref();
 
-app.post("/api/login", requireSameOrigin, function(req, res) {
+app.post("/api/login", requireSameOrigin, async function(req, res) {
     const ip = req.ip;
     const now = Date.now();
     let failures = loginFailures.get(ip);
@@ -195,14 +198,29 @@ app.post("/api/login", requireSameOrigin, function(req, res) {
         password
     } = req.body || {};
 
-    if (
-        typeof username !== "string" || username.trim() === "" ||
-        typeof password !== "string" || password.length === 0 ||
-        username !== process.env.ADMIN_USERNAME ||
-        password !== process.env.ADMIN_PASSWORD
-    ) {
+    let verified = false;
+    let credentialVersion;
+    if (typeof username === "string" && username.trim() !== "" &&
+        typeof password === "string" && password.length > 0) {
+        try {
+            credentialVersion = adminAuth.getCredential().credential_version;
+            verified = await adminAuth.verifyCredential(username, password);
+            if (adminAuth.getCredential().credential_version !== credentialVersion) verified = false;
+        } catch {
+            return res.status(500).json({ message: "Login failed" });
+        }
+    }
+
+    if (!verified) {
+        // Scrypt yields; use the latest failure record instead of a stale pre-await snapshot.
+        failures = loginFailures.get(ip);
+        const failureTime = Date.now();
+        if (failures && failures.expiresAt <= failureTime) failures = undefined;
+        if (failures && failures.count >= LOGIN_FAILURE_LIMIT) {
+            return res.status(429).json({ message: "Too many login attempts. Please try again later." });
+        }
         if (!failures) {
-            failures = { count: 0, expiresAt: now + LOGIN_FAILURE_WINDOW_MS };
+            failures = { count: 0, expiresAt: failureTime + LOGIN_FAILURE_WINDOW_MS };
             loginFailures.set(ip, failures);
         }
         failures.count++;
@@ -218,7 +236,15 @@ app.post("/api/login", requireSameOrigin, function(req, res) {
         if (err) {
             return res.status(500).json({ message: "Login failed" });
         }
+        try {
+            if (adminAuth.getCredential().credential_version !== credentialVersion) {
+                return res.status(401).json({ message: "Invalid username or password" });
+            }
+        } catch {
+            return res.status(500).json({ message: "Login failed" });
+        }
         req.session.isAdmin = true;
+        req.session.credentialVersion = credentialVersion;
         res.json({
             message: "Login successful"
         });
@@ -229,9 +255,15 @@ app.post("/api/login", requireSameOrigin, function(req, res) {
 
 // Check admin login
 
+function validAdminSession(req) {
+    return req.session?.isAdmin === true &&
+        Number.isSafeInteger(req.session.credentialVersion) && req.session.credentialVersion > 0 &&
+        req.session.credentialVersion === adminAuth.getCredential().credential_version;
+}
+
 app.get("/api/admin/check", function(req, res) {
 
-    if (!req.session.isAdmin) {
+    if (!validAdminSession(req)) {
 
         return res.status(401).json({
             message: "Not logged in"
@@ -279,7 +311,7 @@ app.post("/api/logout", requireSameOrigin, function(req, res) {
 
 function requireAdmin(req, res, next) {
 
-    if (!req.session.isAdmin) {
+    if (!validAdminSession(req)) {
 
         return res.status(401).json({
             message: "Admin login required"
@@ -1133,7 +1165,12 @@ function shutdown() {
     server.close(() => {
         sessionStore.close(error => {
             if (error) console.error("Session store shutdown failed.");
-            process.exit(error ? 1 : 0);
+            let authCloseFailed = false;
+            try { adminAuth.close(); } catch {
+                authCloseFailed = true;
+                console.error("Admin credential store shutdown failed.");
+            }
+            process.exit(error || authCloseFailed ? 1 : 0);
         });
     });
 }
