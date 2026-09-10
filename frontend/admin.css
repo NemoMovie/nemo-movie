@@ -19,7 +19,8 @@
     color: #222;
 }
 
- /* Main Page */
+
+/* Main Page */
 
 body {
 
@@ -106,6 +107,31 @@ h1 {
 /* Add Content hover effect */
 
 #addContentButton:hover {
+
+    opacity: 0.8;
+
+}
+
+
+#accountSettingsButton {
+
+    padding: 10px 18px;
+
+    border: none;
+
+    border-radius: 6px;
+
+    background-color: #555;
+
+    color: white;
+
+    cursor: pointer;
+
+    font-weight: bold;
+}
+
+
+#accountSettingsButton:hover {
 
     opacity: 0.8;
 
@@ -360,6 +386,8 @@ h1 {
     opacity: 0.6;
 
 }
+
+
 /* Content statistics */
 
 #contentStats {
@@ -395,6 +423,8 @@ h1 {
     margin-left: 5px;
 
 }
+
+
 /* Admin list headers */
 
 #adminListHeader {
@@ -420,6 +450,8 @@ h1 {
     font-weight: bold;
 
 }
+
+
 /* Admin action buttons */
 
 .admin-movie-item button {
@@ -447,6 +479,193 @@ h1 {
     margin-left: 80px;
 
 }
+
+
+/* Admin Account Settings */
+
+.admin-account {
+
+    max-width: 620px;
+
+    margin-bottom: 35px;
+
+    padding: 22px;
+
+    background-color: white;
+
+    border: 1px solid #ddd;
+
+    border-radius: 10px;
+
+}
+
+
+.admin-account h2 {
+
+    margin-top: 0;
+
+    margin-bottom: 20px;
+
+}
+
+
+.account-field {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 6px;
+
+    margin-bottom: 15px;
+
+}
+
+
+.account-field label {
+
+    font-weight: bold;
+
+}
+
+
+.account-field input {
+
+    width: 100%;
+
+    padding: 12px;
+
+    font-size: 16px;
+
+    border: 1px solid #ccc;
+
+    border-radius: 7px;
+
+    box-sizing: border-box;
+
+}
+
+
+#currentUsername {
+
+    background-color: #f2f2f2;
+
+}
+
+
+/* Password eye */
+
+.password-wrapper {
+
+    position: relative;
+
+    width: 100%;
+
+}
+
+
+.password-wrapper input {
+
+    padding-right: 48px;
+
+}
+
+
+.password-eye {
+
+    position: absolute;
+
+    top: 50%;
+
+    right: 10px;
+
+    transform: translateY(-50%);
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    width: 32px;
+
+    height: 32px;
+
+    padding: 4px;
+
+    border: none;
+
+    background: transparent;
+
+    cursor: pointer;
+
+    border-radius: 50%;
+
+}
+
+
+.password-eye:hover {
+
+    background-color: #eeeeee;
+
+}
+
+
+.password-eye svg {
+
+    width: 22px;
+
+    height: 22px;
+
+    fill: #555;
+
+}
+
+
+.password-eye [hidden] {
+
+    display: none;
+
+}
+
+
+#updateAccountButton {
+
+    padding: 12px 20px;
+
+    border: none;
+
+    border-radius: 7px;
+
+    background-color: #2196f3;
+
+    color: white;
+
+    font-size: 16px;
+
+    font-weight: bold;
+
+    cursor: pointer;
+
+}
+
+
+#updateAccountButton:hover {
+
+    opacity: 0.8;
+
+}
+
+
+#accountMessage {
+
+    margin-top: 12px;
+
+    min-height: 20px;
+
+}
+
+
 /* Mobile Admin Panel */
 
 @media (max-width: 700px) {
@@ -495,7 +714,7 @@ h1 {
     }
 
 
-        .admin-movie-item {
+    .admin-movie-item {
 
         grid-template-columns:
             60px
@@ -554,9 +773,18 @@ h1 {
         box-sizing: border-box;
 
     }
-        #adminListHeader {
+
+
+    #adminListHeader {
 
         display: none;
+
+    }
+
+
+    .admin-account {
+
+        padding: 16px;
 
     }
 

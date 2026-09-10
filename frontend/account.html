@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <title>Admin Account Settings</title>
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <link rel="stylesheet" href="admin.css">
+
+</head>
+
+
+<body>
+
+    <header class="admin-header">
+
+        <img
+            class="admin-logo"
+            src="nemo-movie-logo.png"
+            alt="Nemo Movie"
+        >
+
+        <h1>Admin Account Settings</h1>
+
+    </header>
+
+
+    <section class="admin-account">
+
+        <h2>Account Settings</h2>
+
+
+        <div class="account-field">
+
+            <label for="currentUsername">
+                Current Username
+            </label>
+
+            <input
+                type="text"
+                id="currentUsername"
+                readonly
+            >
+
+        </div>
+
+
+        <div class="account-field">
+
+            <label for="newUsername">
+                New Username
+            </label>
+
+            <input
+                type="text"
+                id="newUsername"
+                placeholder="Leave blank to keep current username"
+            >
+
+        </div>
+
+
+        <div class="account-field">
+
+            <label for="currentPassword">
+                Current Password
+            </label>
+
+            <div class="password-wrapper">
+
+                <input
+                    type="password"
+                    id="currentPassword"
+                    autocomplete="current-password"
+                >
+
+                <button
+                    type="button"
+                    class="password-eye"
+                    data-target="currentPassword"
+                    aria-label="Show password"
+                >
+
+                    <svg
+                        class="eye-show"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                    >
+                        <path
+                            d="M12 5C6.5 5 2.1 8.4 1 12c1.1 3.6 5.5 7 11 7s9.9-3.4 11-7c-1.1-3.6-5.5-7-11-7zm0 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-6a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"
+                        />
+                    </svg>
+
+                    <svg
+                        class="eye-hide"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                        hidden
+                    >
+                        <path
+                            d="M2.1 3.5 3.5 2.1 21.9 20.5 20.5 21.9 17.7 19.1A11.7 11.7 0 0 1 12 20C6.5 20 2.1 16.6 1 13c.6-1.9 2-3.8 4-5.2L2.1 4.9V3.5zm6 7.4A4 4 0 0 0 13.1 16l-5-5.1zM12 6c5.5 0 9.9 3.4 11 7a12.2 12.2 0 0 1-3 4.6l-2.2-2.2A4 4 0 0 0 12.6 10L9.8 7.2A12 12 0 0 1 12 6z"
+                        />
+                    </svg>
+
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div class="account-field">
+
+            <label for="newPassword">
+                New Password
+            </label>
+
+            <div class="password-wrapper">
+
+                <input
+                    type="password"
+                    id="newPassword"
+                    autocomplete="new-password"
+                    placeholder="Leave blank to keep current password"
+                >
+
+                <button
+                    type="button"
+                    class="password-eye"
+                    data-target="newPassword"
+                    aria-label="Show password"
+                >
+
+                    <svg
+                        class="eye-show"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                    >
+                        <path
+                            d="M12 5C6.5 5 2.1 8.4 1 12c1.1 3.6 5.5 7 11 7s9.9-3.4 11-7c-1.1-3.6-5.5-7-11-7zm0 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-6a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"
+                        />
+                    </svg>
+
+                    <svg
+                        class="eye-hide"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                        hidden
+                    >
+                        <path
+                            d="M2.1 3.5 3.5 2.1 21.9 20.5 20.5 21.9 17.7 19.1A11.7 11.7 0 0 1 12 20C6.5 20 2.1 16.6 1 13c.6-1.9 2-3.8 4-5.2L2.1 4.9V3.5zm6 7.4A4 4 0 0 0 13.1 16l-5-5.1zM12 6c5.5 0 9.9 3.4 11 7a12.2 12.2 0 0 1-3 4.6l-2.2-2.2A4 4 0 0 0 12.6 10L9.8 7.2A12 12 0 0 1 12 6z"
+                        />
+                    </svg>
+
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div class="account-field">
+
+            <label for="confirmNewPassword">
+                Confirm New Password
+            </label>
+
+            <div class="password-wrapper">
+
+                <input
+                    type="password"
+                    id="confirmNewPassword"
+                    autocomplete="new-password"
+                >
+
+                <button
+                    type="button"
+                    class="password-eye"
+                    data-target="confirmNewPassword"
+                    aria-label="Show password"
+                >
+
+                    <svg
+                        class="eye-show"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                    >
+                        <path
+                            d="M12 5C6.5 5 2.1 8.4 1 12c1.1 3.6 5.5 7 11 7s9.9-3.4 11-7c-1.1-3.6-5.5-7-11-7zm0 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-6a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"
+                        />
+                    </svg>
+
+                    <svg
+                        class="eye-hide"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                        hidden
+                    >
+                        <path
+                            d="M2.1 3.5 3.5 2.1 21.9 20.5 20.5 21.9 17.7 19.1A11.7 11.7 0 0 1 12 20C6.5 20 2.1 16.6 1 13c.6-1.9 2-3.8 4-5.2L2.1 4.9V3.5zm6 7.4A4 4 0 0 0 13.1 16l-5-5.1zM12 6c5.5 0 9.9 3.4 11 7a12.2 12.2 0 0 1-3 4.6l-2.2-2.2A4 4 0 0 0 12.6 10L9.8 7.2A12 12 0 0 1 12 6z"
+                        />
+                    </svg>
+
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <button id="updateAccountButton">
+            Update Account
+        </button>
+
+        <button id="backToAdminButton">
+            Back to Admin Panel
+        </button>
+
+        <p id="accountMessage"></p>
+
+    </section>
+
+
+    <script
+        type="module"
+        src="account.js"
+    ></script>
+
+</body>
+
+</html>

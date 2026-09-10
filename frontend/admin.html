@@ -20,8 +20,17 @@
 <body>
 
     <header class="admin-header">
-        <img class="admin-logo" src="nemo-movie-logo.png" alt="Nemo Movie">
-        <h1>Admin Panel</h1>
+
+        <img
+            class="admin-logo"
+            src="nemo-movie-logo.png"
+            alt="Nemo Movie"
+        >
+
+        <h1>
+            Admin Panel
+        </h1>
+
     </header>
 
 
@@ -85,6 +94,11 @@
         </select>
 
 
+        <button id="accountSettingsButton">
+            Account Settings
+        </button>
+
+
         <button id="logoutButton">
             Logout
         </button>
@@ -92,45 +106,52 @@
     </div>
 
 
-    <h2>Movie / Series List</h2>
+    <h2>
+        Movie / Series List
+    </h2>
 
-   <div id="contentStats">
 
-    <span>
-        Total Content:
-        <strong id="totalContent">0</strong>
-    </span>
+    <div id="contentStats">
 
-    <span>
-        Movies:
-        <strong id="totalMovies">0</strong>
-    </span>
+        <span>
+            Total Content:
+            <strong id="totalContent">0</strong>
+        </span>
 
-    <span>
-        Series:
-        <strong id="totalSeries">0</strong>
-    </span>
+        <span>
+            Movies:
+            <strong id="totalMovies">0</strong>
+        </span>
 
-   </div>
-   <!-- Admin list headers -->
+        <span>
+            Series:
+            <strong id="totalSeries">0</strong>
+        </span>
 
-<div id="adminListHeader">
+    </div>
 
-    <span>Poster</span>
 
-    <span>Title</span>
+    <!-- Admin list headers -->
 
-    <span>Movie ID</span>
+    <div id="adminListHeader">
 
-    <span>Type</span>
+        <span>Poster</span>
 
-    <span>Year</span>
+        <span>Title</span>
 
-    <span>Actions</span>
+        <span>Movie ID</span>
 
-</div>
+        <span>Type</span>
 
-   <div id="adminMovieList"></div>
+        <span>Year</span>
+
+        <span>Actions</span>
+
+    </div>
+
+
+    <div id="adminMovieList"></div>
+
 
     <!-- Pagination -->
 

@@ -2,7 +2,7 @@ import "dotenv/config";
 import express from "express";
 import session from "express-session";
 import SQLiteSessionStore from "./session-store.js";
-import { createAdminAuth } from "./admin-auth.js";
+import { createAdminAuth, validateNewUsername } from "./admin-auth.js";
 import { validateDatabasePath } from "./bootstrap-admin.js";
 import Database from "better-sqlite3";
 import path from "path";
@@ -173,6 +173,9 @@ function receivePoster(req, res, next) {
 const loginFailures = new Map();
 const LOGIN_FAILURE_LIMIT = 5;
 const LOGIN_FAILURE_WINDOW_MS = 15 * 60 * 1000;
+const accountFailures = new Map();
+const ACCOUNT_FAILURE_LIMIT = 5;
+const ACCOUNT_FAILURE_WINDOW_MS = 15 * 60 * 1000;
 const loginCleanup = setInterval(() => {
     const now = Date.now();
     for (const [ip, record] of loginFailures) {
@@ -180,6 +183,21 @@ const loginCleanup = setInterval(() => {
     }
 }, 60 * 1000);
 loginCleanup.unref();
+const accountCleanup = setInterval(() => {
+
+    const now = Date.now();
+
+    for (const [ip, record] of accountFailures) {
+
+        if (record.expiresAt <= now) {
+            accountFailures.delete(ip);
+        }
+
+    }
+
+}, 60 * 1000);
+
+accountCleanup.unref();
 
 app.post("/api/login", requireSameOrigin, async function(req, res) {
     const ip = req.ip;
@@ -276,7 +294,286 @@ app.get("/api/admin/check", function(req, res) {
     });
 
 });
+// Get current Admin account
 
+app.get(
+    "/api/admin/account",
+    requireAdmin,
+    function(req, res) {
+
+        const credential =
+            adminAuth.getCredential();
+
+        res.setHeader(
+            "Cache-Control",
+            "no-store"
+        );
+
+        res.json({
+            username:
+                credential.username
+        });
+
+    }
+);
+app.put(
+    "/api/admin/account",
+    requireSameOrigin,
+    requireAdmin,
+    async function(req, res) {
+
+        const ip = req.ip;
+        const now = Date.now();
+
+        let failures =
+            accountFailures.get(ip);
+
+        if (
+            failures &&
+            failures.expiresAt <= now
+        ) {
+            accountFailures.delete(ip);
+            failures = undefined;
+        }
+
+        if (
+            failures &&
+            failures.count >= ACCOUNT_FAILURE_LIMIT
+        ) {
+            return res.status(429).json({
+                message:
+                    "Too many password attempts. Please try again later."
+            });
+        }
+
+
+        const {
+            currentPassword,
+            newUsername,
+            newPassword,
+            confirmNewPassword
+        } = req.body || {};
+
+
+        if (
+            typeof currentPassword !== "string" ||
+            currentPassword.length === 0
+        ) {
+            return res.status(400).json({
+                message:
+                    "Current password is required"
+            });
+        }
+
+
+        const wantsUsernameChange =
+            newUsername !== undefined &&
+            newUsername !== "";
+
+        const wantsPasswordChange =
+            newPassword !== undefined &&
+            newPassword !== "";
+
+
+        if (
+            !wantsUsernameChange &&
+            !wantsPasswordChange
+        ) {
+            return res.status(400).json({
+                message:
+                    "Enter a new username or password"
+            });
+        }
+
+
+        if (
+            wantsUsernameChange &&
+            !validateNewUsername(newUsername)
+        ) {
+            return res.status(400).json({
+                message:
+                    "Invalid new username"
+            });
+        }
+
+
+       if (wantsPasswordChange) {
+
+    if (
+        typeof newPassword !== "string" ||
+        newPassword.length < 12
+    ) {
+        return res.status(400).json({
+            message:
+                "New password must be at least 12 characters"
+        });
+    }
+
+    if (
+        typeof confirmNewPassword !== "string" ||
+        newPassword !== confirmNewPassword
+    ) {
+        return res.status(400).json({
+            message:
+                "New passwords do not match"
+        });
+    }
+
+}
+
+
+        try {
+
+            const credential =
+                adminAuth.getCredential();
+
+
+            const currentPasswordValid =
+                await adminAuth.verifyCredential(
+                    credential.username,
+                    currentPassword
+                );
+
+
+            if (!currentPasswordValid) {
+
+                failures =
+                    accountFailures.get(ip);
+
+                const failureTime =
+                    Date.now();
+
+
+                if (
+                    failures &&
+                    failures.expiresAt <= failureTime
+                ) {
+                    failures = undefined;
+                }
+
+
+                if (
+                    failures &&
+                    failures.count >= ACCOUNT_FAILURE_LIMIT
+                ) {
+                    return res.status(429).json({
+                        message:
+                            "Too many password attempts. Please try again later."
+                    });
+                }
+
+
+                if (!failures) {
+
+                    failures = {
+                        count: 0,
+                        expiresAt:
+                            failureTime +
+                            ACCOUNT_FAILURE_WINDOW_MS
+                    };
+
+                    accountFailures.set(
+                        ip,
+                        failures
+                    );
+
+                }
+
+
+                failures.count++;
+
+
+                return res.status(401).json({
+                    message:
+                        "Current password is incorrect"
+                });
+
+            }
+
+
+            accountFailures.delete(ip);
+
+
+            await adminAuth.updateCredential({
+
+                expectedVersion:
+                    credential.credential_version,
+
+                newUsername:
+                    wantsUsernameChange
+                        ? newUsername
+                        : undefined,
+
+                newPassword:
+                    wantsPasswordChange
+                        ? newPassword
+                        : undefined
+
+            });
+
+
+            req.session.destroy(function(err) {
+
+                if (err) {
+
+                    return res.status(500).json({
+                        message:
+                            "Account updated, but logout failed"
+                    });
+
+                }
+
+
+                res.clearCookie(
+                    "connect.sid",
+                    {
+                        path: "/",
+                        secure: isProduction,
+                        httpOnly: true,
+                        sameSite: "lax"
+                    }
+                );
+
+
+                res.json({
+                    message:
+                        "Admin account updated. Please log in again."
+                });
+
+            });
+
+
+        } catch (error) {
+
+            if (error.code === "NO_CHANGE") {
+
+                return res.status(400).json({
+                    message:
+                        "No account changes detected"
+                });
+
+            }
+
+
+            if (error.code === "STALE_VERSION") {
+
+                return res.status(409).json({
+                    message:
+                        "Admin account changed. Please log in again."
+                });
+
+            }
+
+
+            return res.status(500).json({
+                message:
+                    "Admin account update failed"
+            });
+
+        }
+
+    }
+);
 
 // Admin logout
 

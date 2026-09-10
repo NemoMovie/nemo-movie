@@ -25,6 +25,23 @@ async function checkAdmin() {
 
 checkAdmin();
 
+// Open Account Settings
+
+const accountSettingsButton =
+    document.getElementById(
+        "accountSettingsButton"
+    );
+
+accountSettingsButton.addEventListener(
+    "click",
+    function() {
+
+        window.location.href =
+            "account.html";
+
+    }
+);
+
 
 function getPosterUrl(poster) {
 
