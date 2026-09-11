@@ -6,6 +6,9 @@ backend/sessions.db-journal
 backend/sessions.db-wal
 backend/sessions.db-shm
 backend/movies.db
+backend/movies.db-wal
+backend/movies.db-shm
+backend/movies.db-journal
 backend/movies-backup-*.db
 backend/uploads/
 backend/.env 
