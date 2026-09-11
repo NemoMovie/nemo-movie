@@ -4,7 +4,8 @@ const TelegramBot = require("node-telegram-bot-api");
 
 const token = process.env.BOT_TOKEN;
 const storageGroupId = process.env.STORAGE_GROUP_ID;
-const mappingApiSecret = process.env.MAPPING_API_SECRET;
+const mappingReadSecret = process.env.MAPPING_READ_SECRET;
+const mappingWriteSecret = process.env.MAPPING_WRITE_SECRET;
 const mappingBackendUrl = (process.env.BACKEND_URL || "http://localhost:3000").replace(/\/+$/, "");
 // Invalid entries are ignored; an empty/missing list authorizes nobody.
 const authorizedTelegramUserIds = new Set(
@@ -292,7 +293,7 @@ bot.onText(/\/start movie_(\d+)/, async function(msg, match) {
 
 bot.on("message", async function(msg) {
     if (msg.chat.type === "private") return;
-    if (!storageGroupId || !mappingApiSecret ||
+    if (!storageGroupId || !mappingWriteSecret ||
         !["group", "supergroup"].includes(msg.chat.type) ||
         String(msg.chat.id) !== storageGroupId ||
         !(msg.video || msg.document)) {
@@ -341,7 +342,7 @@ bot.on("message", async function(msg) {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${mappingApiSecret}`
+                    Authorization: `Bearer ${mappingWriteSecret}`
                 },
                 body: JSON.stringify({
                     telegram_chat_id: String(msg.chat.id),
@@ -465,7 +466,7 @@ async function sendEpisode(chatId, seriesId, episodeNumber) {
     try {
         const response = await fetch(
             `${mappingBackendUrl}/api/series/${seriesId}/episodes/${episodeNumber}/telegram`,
-            { headers: { Authorization: `Bearer ${process.env.MAPPING_API_SECRET}` } }
+            { headers: { Authorization: `Bearer ${mappingReadSecret}` } }
         );
 
         if (response.status === 404) {
@@ -525,7 +526,7 @@ async function sendMovie(chatId, movieId) {
 
         const response = await fetch(
             `${mappingBackendUrl}/api/movies/${movieId}/telegram`,
-            { headers: { Authorization: `Bearer ${process.env.MAPPING_API_SECRET}` } }
+            { headers: { Authorization: `Bearer ${mappingReadSecret}` } }
         );
 
         if (!response.ok) {

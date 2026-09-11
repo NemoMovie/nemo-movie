@@ -16,7 +16,7 @@ const guards = source.slice(source.indexOf("function validAdminSession("), sourc
     source.slice(source.indexOf("function requireAdmin("), source.indexOf("// GET movies with search"));
 const routes = source.slice(source.indexOf("// GET movies with search"), source.indexOf("// Add movie or series"));
 
-async function fixture(t, secret = "test-mapping-secret") {
+async function fixture(t, secret = "test-mapping-secret", writeSecret = "test-write-secret") {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), "nemo-mapping-access-"));
     const db = new Database(path.join(directory, "movies.db"));
     db.exec(`CREATE TABLE movies (
@@ -46,7 +46,7 @@ async function fixture(t, secret = "test-mapping-secret") {
     });
     const writes = source.slice(source.indexOf("function requireAutomaticMapping("), source.indexOf("// Validate the parent and episode number for admin episode mutations"));
     vm.runInNewContext(guards + routes + writes, { app, db, Buffer, timingSafeEqual,
-        process: { env: { MAPPING_API_SECRET: secret, STORAGE_GROUP_ID: "synthetic-storage" } },
+        process: { env: { MAPPING_READ_SECRET: secret, MAPPING_WRITE_SECRET: writeSecret, STORAGE_GROUP_ID: "synthetic-storage" } },
         adminAuth: { getCredential: () => ({ credential_version: 1 }) } });
     const listener = await new Promise(resolve => {
         const server = app.listen(0, "127.0.0.1", () => resolve(server));
@@ -151,7 +151,7 @@ test("anonymous/invalid authorization rejected; current Admin sessions accepted"
     const login = await request("/test/session", undefined, "POST");
     const cookie = login.headers.get("set-cookie").split(";")[0];
     for (const route of ["/api/movies/1/telegram", "/api/series/2/episodes/1/telegram"]) {
-        for (const token of [undefined, "Bearer wrong", "Bearer test-mapping-secrex"]) {
+        for (const token of [undefined, "Bearer wrong", "Bearer test-mapping-secrex", "Bearer test-write-secret"]) {
             assert.equal((await request(route, undefined, "GET", token)).status, 401);
         }
         const admin = await request(route, cookie);
@@ -173,17 +173,26 @@ test("missing secret fails closed with 503, including Admin reads", async t => {
 
 test("automatic writes still authenticate, validate bodies and replace mappings", async t => {
     const request = await fixture(t);
-    const token = "Bearer test-mapping-secret";
+    const token = "Bearer test-write-secret";
     for (const [write, read] of [["/api/internal/movies/1/telegram", "/api/movies/1/telegram"],
         ["/api/internal/series/2/episodes/1/telegram", "/api/series/2/episodes/1/telegram"]]) {
         const body = { telegram_chat_id: "synthetic-storage", telegram_message_id: 789 };
         assert.equal((await request(write, undefined, "PUT", undefined, body)).status, 401);
+        assert.equal((await request(write, undefined, "PUT", "Bearer test-mapping-secret", body)).status, 401);
         assert.equal((await request(write, undefined, "PUT", token, { ...body, telegram_chat_id: "wrong" })).status, 403);
         assert.equal((await request(write, undefined, "PUT", token, { ...body, telegram_message_id: 0 })).status, 400);
         for (const id of [789, 790]) {
             assert.equal((await request(write, undefined, "PUT", token, { ...body, telegram_message_id: id })).status, 200);
-            assert.equal((await request(read, undefined, "GET", token)).body.telegram_message_id, id);
+            assert.equal((await request(read, undefined, "GET", "Bearer test-mapping-secret")).body.telegram_message_id, id);
         }
     }
     assert.equal((await request("/api/series/2/episodes")).body[0].id, 1);
+});
+
+test("missing write secret disables writes without disabling reads", async t => {
+    const request = await fixture(t, "test-mapping-secret", "");
+    for (const route of ["/api/internal/movies/1/telegram", "/api/internal/series/2/episodes/1/telegram"]) {
+        assert.equal((await request(route, undefined, "PUT", "Bearer test-mapping-secret", {})).status, 503);
+    }
+    assert.equal((await request("/api/movies/1/telegram", undefined, "GET", "Bearer test-mapping-secret")).status, 200);
 });

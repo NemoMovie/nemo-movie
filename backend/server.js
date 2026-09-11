@@ -635,7 +635,7 @@ function requireAdmin(req, res, next) {
 // GET movies with search, type, category, and pagination
 
 function requireMappingRead(req, res, next) {
-    const secret = process.env.MAPPING_API_SECRET;
+    const secret = process.env.MAPPING_READ_SECRET;
     if (!secret) {
         return res.status(503).json({ message: "Mapping API is not configured" });
     }
@@ -1141,7 +1141,7 @@ app.post(
 
 // Automatic mapping uses a dedicated secret, independently of Admin sessions.
 function requireAutomaticMapping(req, res, next) {
-    const secret = process.env.MAPPING_API_SECRET;
+    const secret = process.env.MAPPING_WRITE_SECRET;
     const storageGroupId = process.env.STORAGE_GROUP_ID;
     if (!secret || !storageGroupId) {
         return res.status(503).json({ message: "Automatic mapping is not configured" });

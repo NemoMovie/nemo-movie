@@ -5,10 +5,11 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 function fixture() {
-    const requests = [], sends = [];
+    const requests = [], sends = [], messages = [];
     class MockBot {
-        on() {}
+        on(event, handler) { if (event === "message") messages.push(handler); }
         onText() {}
+        async sendMessage() {}
         async copyMessage(...args) { sends.push(args); }
     }
     const context = vm.createContext({
@@ -17,7 +18,8 @@ function fixture() {
             if (name === "node-telegram-bot-api") return MockBot;
             throw new Error("Unexpected dependency");
         },
-        process: { env: { BACKEND_URL: "https://backend.invalid", MAPPING_API_SECRET: "synthetic-test-secret" } },
+        process: { env: { BACKEND_URL: "https://backend.invalid", MAPPING_READ_SECRET: "synthetic-test-secret",
+            MAPPING_WRITE_SECRET: "synthetic-write-secret", STORAGE_GROUP_ID: "-100", AUTHORIZED_TELEGRAM_USER_IDS: "1" } },
         console: { log() {}, error() {} }, AbortSignal, URL, setTimeout,
         fetch: async (url, options = {}) => {
             requests.push({ url, options });
@@ -28,7 +30,7 @@ function fixture() {
         }
     });
     vm.runInContext(fs.readFileSync(path.join(__dirname, "bot.js"), "utf8"), context);
-    return { context, requests, sends };
+    return { context, requests, sends, messages };
 }
 
 for (const [name, call, mappingPath, caption] of [
@@ -55,4 +57,20 @@ test("shared public search/detail reader never attaches mapping authorization", 
     assert.equal(f.requests.length, 4);
     for (const request of f.requests) assert.equal(request.options.headers, undefined);
     assert.equal(f.sends.length, 0);
+});
+
+test("automatic movie and episode uploads use only the write secret", async () => {
+    const f = fixture();
+    for (const caption of ["movie_8", "series_26_ep_3"]) {
+        for (const handler of f.messages) {
+            await handler({ chat: { id: -100, type: "supergroup" }, from: { id: 1 },
+                video: { file_id: "synthetic" }, message_id: 123, caption });
+        }
+    }
+    assert.equal(f.requests.length, 2);
+    for (const request of f.requests) {
+        assert.match(request.url, /\/api\/internal\//);
+        assert.equal(request.options.method, "PUT");
+        assert.equal(request.options.headers.Authorization, "Bearer synthetic-write-secret");
+    }
 });
