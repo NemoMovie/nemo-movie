@@ -14,3 +14,7 @@ backend/uploads/
 backend/.env 
 telegram-bot/.env
 backend/uploads-backup-*/
+nemo-env-*.age
+nemo-env-*.metadata.json
+nemo-env-*.partial
+.nemo-env-recovery-work*/
