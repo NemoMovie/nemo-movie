@@ -1,5 +1,25 @@
 # Backup safety and recovery
 
+## Retention preview only
+
+`node backend/retention.js --dry-run` previews `C:\NemoMovieBackups`.
+An explicit `RETENTION_ROOT` override is supported; unsafe source/repository/E:
+roots are refused. This command never writes, deletes, renames or marks snapshots.
+There is no `--apply` mode. It is not integrated into backup creation.
+
+Candidates require final timestamp/UUID names matching a valid UTC manifest
+timestamp, version 1, successful verification, and regular COMPLETE/manifest files.
+The newest per latest 7 populated UTC dates, 4 ISO Monday-based weeks and 3 calendar
+months are retained as a union. Ties use ascending directory-name order. A regular
+PROTECTED marker preserves a snapshot without reading its contents. Suspicious
+entries are KEEP/REVIEW; partials are IGNORE. Neither is a deletion candidate.
+
+Preview trusts the recorded verification result; it does not recheck database
+integrity or hashes. Names/timestamps/counts/reasons are printed, not database or
+manifest contents. Review races with ongoing backups can yield conservative or
+stale previews; rerun after backup completion. These plans must never be used as
+authorization for deletion without future locking and revalidation safeguards.
+
 Supported production execution: one Windows account and one project checkout.
 Use the same account/checkout for every backup; different accounts or checkouts
 do not share the temporary-directory lock. Restrict backup-directory permissions.
