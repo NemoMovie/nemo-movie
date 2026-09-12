@@ -126,7 +126,10 @@ test("Admin detail requires authentication and returns full uncached record", as
         assert.equal((await request(`/api/admin/movies/${id}`, cookie)).status, 400);
     }
     assert.equal((await request("/api/admin/movies/999", cookie)).status, 404);
-    assert.equal((await request("/api/admin/movies", cookie)).body[0].telegram_chat_id, "synthetic-storage");
+    const list = (await request("/api/admin/movies", cookie)).body;
+    assert.equal(list.total, 3);
+    assert.deepEqual(Object.keys(list.movies[0]).sort(), ["id", "poster", "title", "type", "year"]);
+    assert.equal(Object.hasOwn(list.movies[0], "telegram_chat_id"), false);
 });
 
 test("Bearer mapping reads preserve responses and public episode list", async t => {

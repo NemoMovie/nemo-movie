@@ -808,11 +808,51 @@ app.get("/api/movies", function(req, res) {
 
 app.get("/api/admin/movies", requireAdmin, function(req, res) {
 
-    const movies = db
-        .prepare("SELECT * FROM movies")
-        .all();
-
-    res.json(movies);
+    for (const key of ["page", "limit", "search", "type", "sort"]) {
+        if ((req.query[key] !== undefined && typeof req.query[key] !== "string") ||
+            Object.keys(req.query).some(name => name.startsWith(key + "["))) {
+            return res.status(400).json({ message: "Invalid Admin query" });
+        }
+    }
+    const positive = (value, fallback) => value === undefined ? fallback
+        : /^\d+$/.test(value) && Number.isSafeInteger(Number(value)) && Number(value) > 0 ? Number(value) : NaN;
+    const page = positive(req.query.page, 1);
+    const limit = positive(req.query.limit, 24);
+    const offset = (page - 1) * limit;
+    const search = (req.query.search ?? "").trim();
+    const type = req.query.type ?? "all";
+    const sort = req.query.sort ?? "newest";
+    // NULL years sort first ascending, last descending; zero remains numeric.
+    const orders = {
+        newest: "id DESC", oldest: "id ASC",
+        "title-asc": "title COLLATE NOCASE ASC, id DESC",
+        "title-desc": "title COLLATE NOCASE DESC, id DESC",
+        "year-desc": "year DESC, id DESC", "year-asc": "year ASC, id DESC"
+    };
+    if (!Number.isSafeInteger(page) || !Number.isSafeInteger(limit) || limit > 100 ||
+        !Number.isSafeInteger(offset) || offset < 0 || search.length > 150 ||
+        !["all", "movie", "series"].includes(type) || !Object.hasOwn(orders, sort)) {
+        return res.status(400).json({ message: "Invalid Admin query" });
+    }
+    const conditions = [];
+    const values = [];
+    if (search) {
+        const pattern = "%" + search.replace(/[!%_]/g, "!$&") + "%";
+        conditions.push("(title LIKE ? ESCAPE '!' OR categories LIKE ? ESCAPE '!' OR CAST(year AS TEXT) LIKE ? ESCAPE '!')");
+        values.push(pattern, pattern, pattern);
+    }
+    if (type !== "all") {
+        conditions.push("type = ?");
+        values.push(type);
+    }
+    const where = conditions.length ? "WHERE " + conditions.join(" AND ") : "";
+    const movies = db.prepare(`SELECT id, poster, title, type, year FROM movies
+        ${where} ORDER BY ${orders[sort]} LIMIT ? OFFSET ?`).all(...values, limit, offset);
+    const total = db.prepare(`SELECT COUNT(*) AS count FROM movies ${where}`).get(...values).count;
+    const stats = db.prepare(`SELECT COUNT(*) AS totalContent,
+        COUNT(CASE WHEN type = 'movie' THEN 1 END) AS totalMovies,
+        COUNT(CASE WHEN type = 'series' THEN 1 END) AS totalSeries FROM movies`).get();
+    res.json({ movies, total, stats });
 
 });
 

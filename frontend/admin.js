@@ -5,20 +5,12 @@ import { API_URL } from "./config.js";
 
 async function checkAdmin() {
 
-    const response = await fetch(
-        API_URL + "/api/admin/check",
-        {
-            credentials: "include"
-        }
-    );
-
-    if (!response.ok) {
-
-        window.location.href =
-            "login.html";
-
-        return;
-
+    try {
+        const response = await fetch(API_URL + "/api/admin/check", { credentials: "include" });
+        if (response.status === 401) window.location.href = "login.html";
+        else if (!response.ok) showAdminError("Could not check Admin session. Please retry.");
+    } catch {
+        showAdminError("Could not check Admin session. Please retry.");
     }
 
 }
@@ -92,185 +84,60 @@ logoutButton.addEventListener(
 
 let currentPage = 1;
 
-const moviesPerPage = 20;
+const moviesPerPage = 24;
 
-let allMovies = [];
+let requestVersion = 0;
+let searchTimer;
+const sortValues = { newest: "newest", oldest: "oldest", titleAZ: "title-asc",
+    titleZA: "title-desc", yearHigh: "year-desc", yearLow: "year-asc" };
+const listMessage = document.createElement("div");
+listMessage.setAttribute("role", "status");
+document.getElementById("adminMovieList").before(listMessage);
 
-
-// Load admin movies
+function showAdminError(message) {
+    listMessage.textContent = message + " ";
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.textContent = "Retry loading list";
+    retry.addEventListener("click", () => loadAdminMovies());
+    listMessage.appendChild(retry);
+}
 
 async function loadAdminMovies() {
-
-     const response = await fetch(
-       API_URL + "/api/admin/movies",
-      {
-           credentials: "include"
-      }
-    );
-
-    if (!response.ok) {
-
-        window.location.href =
-            "login.html";
-
-        return;
-
+    clearTimeout(searchTimer);
+    const version = ++requestVersion;
+    const params = new URLSearchParams({ page: currentPage, limit: moviesPerPage,
+        search: document.getElementById("searchInput").value.trim(),
+        type: document.getElementById("typeFilter").value,
+        sort: sortValues[document.getElementById("sortFilter").value] });
+    try {
+        const response = await fetch(API_URL + "/api/admin/movies?" + params, { credentials: "include" });
+        if (version !== requestVersion) return;
+        if (response.status === 401) {
+            window.location.href = "login.html";
+            return;
+        }
+        if (!response.ok) throw new Error("List failed");
+        const result = await response.json();
+        if (version !== requestVersion) return;
+        const lastPage = Math.max(1, Math.ceil(result.total / moviesPerPage));
+        if (currentPage > lastPage) {
+            currentPage = lastPage;
+            return loadAdminMovies();
+        }
+        listMessage.textContent = result.total ? "" : "No movies or series found.";
+        for (const key of ["totalContent", "totalMovies", "totalSeries"]) {
+            document.getElementById(key).textContent = result.stats[key];
+        }
+        displayMovies(result.movies, result.total);
+    } catch {
+        if (version === requestVersion) showAdminError("Could not load Admin list. Please retry.");
     }
-
-    allMovies =
-       await response.json();
-
-    updateContentStats();
-
-    sortMovies();
-
 }
-// Update content statistics
-
-function updateContentStats() {
-
-    const totalContent =
-        document.getElementById("totalContent");
-
-    const totalMovies =
-        document.getElementById("totalMovies");
-
-    const totalSeries =
-        document.getElementById("totalSeries");
-
-
-    const movieCount =
-        allMovies.filter(function(movie) {
-
-            return movie.type === "movie";
-
-        }).length;
-
-
-    const seriesCount =
-        allMovies.filter(function(movie) {
-
-            return movie.type === "series";
-
-        }).length;
-
-
-    totalContent.textContent =
-        allMovies.length;
-
-    totalMovies.textContent =
-        movieCount;
-
-    totalSeries.textContent =
-        seriesCount;
-
-}
-
-// Sort movies
-
-function sortMovies() {
-
-    const sortFilter =
-        document.getElementById(
-            "sortFilter"
-        );
-
-    const sortValue =
-        sortFilter.value;
-
-
-    if (sortValue === "newest") {
-
-        allMovies.sort(
-            function(a, b) {
-
-                return b.id - a.id;
-
-            }
-        );
-
-    }
-
-
-    if (sortValue === "oldest") {
-
-        allMovies.sort(
-            function(a, b) {
-
-                return a.id - b.id;
-
-            }
-        );
-
-    }
-
-
-    if (sortValue === "titleAZ") {
-
-        allMovies.sort(
-            function(a, b) {
-
-                return a.title.localeCompare(
-                    b.title
-                );
-
-            }
-        );
-
-    }
-
-
-    if (sortValue === "titleZA") {
-
-        allMovies.sort(
-            function(a, b) {
-
-                return b.title.localeCompare(
-                    a.title
-                );
-
-            }
-        );
-
-    }
-
-
-    if (sortValue === "yearHigh") {
-
-        allMovies.sort(
-            function(a, b) {
-
-                return b.year - a.year;
-
-            }
-        );
-
-    }
-
-
-    if (sortValue === "yearLow") {
-
-        allMovies.sort(
-            function(a, b) {
-
-                return a.year - b.year;
-
-            }
-        );
-
-    }
-
-
-    currentPage = 1;
-
-    filterMovies();
-
-}
-
 
 // Display movies
 
-function displayMovies(movieList) {
+function displayMovies(movieList, total) {
 
     const adminMovieList =
         document.getElementById(
@@ -285,19 +152,7 @@ function displayMovies(movieList) {
         moviesPerPage;
 
 
-    const endIndex =
-        startIndex +
-        moviesPerPage;
-
-
-    const pageMovies =
-        movieList.slice(
-            startIndex,
-            endIndex
-        );
-
-
-    pageMovies.forEach(
+    movieList.forEach(
         function(movie, index) {
 
             const movieItem =
@@ -462,26 +317,19 @@ function displayMovies(movieList) {
                     }
 
 
-                    const response =
-                        await fetch(
-                            API_URL +
-                            "/api/movies/" +
-                            movie.id,
-                            {
-                                method: "DELETE",
-                                credentials: "include"
-                            }
-                        );
-
-
-                    const result =
-                        await response.json();
-
-
-                    console.log(result);
-
-
-                    loadAdminMovies();
+                    try {
+                        const response = await fetch(API_URL + "/api/movies/" + movie.id, {
+                            method: "DELETE", credentials: "include"
+                        });
+                        if (response.status === 401) {
+                            window.location.href = "login.html";
+                            return;
+                        }
+                        if (!response.ok) throw new Error("Delete failed");
+                        await loadAdminMovies();
+                    } catch {
+                        showAdminError("Could not delete this title. Refresh the list before trying again.");
+                    }
 
                 }
             );
@@ -501,92 +349,7 @@ function displayMovies(movieList) {
 
 
     displayPagination(
-        movieList.length
-    );
-
-}
-
-
-// Search and type filter
-
-function filterMovies() {
-
-    const searchInput =
-        document.getElementById(
-            "searchInput"
-        );
-
-    const typeFilter =
-        document.getElementById(
-            "typeFilter"
-        );
-
-
-    const searchText =
-        searchInput.value
-            .toLowerCase()
-            .trim();
-
-
-    const selectedType =
-        typeFilter.value;
-
-
-    const filteredMovies =
-        allMovies.filter(
-            function(movie) {
-
-                const movieText =
-                    (
-                        (movie.title || "") +
-                        " " +
-                        (movie.category || "") +
-                        " " +
-                        (movie.year || "")
-                    )
-                    .toLowerCase();
-
-
-                const matchesSearch =
-                    movieText.includes(
-                        searchText
-                    );
-
-
-                const matchesType =
-                    selectedType === "all" ||
-                    movie.type === selectedType;
-
-
-                return (
-                    matchesSearch &&
-                    matchesType
-                );
-
-            }
-        );
-
-
-    const totalPages =
-        Math.ceil(
-            filteredMovies.length /
-            moviesPerPage
-        );
-
-
-    if (
-        currentPage > totalPages &&
-        totalPages > 0
-    ) {
-
-        currentPage =
-            totalPages;
-
-    }
-
-
-    displayMovies(
-        filteredMovies
+        total
     );
 
 }
@@ -642,7 +405,7 @@ function displayPagination(totalItems) {
 
                 currentPage--;
 
-                filterMovies();
+                loadAdminMovies();
 
             }
 
@@ -658,8 +421,8 @@ function displayPagination(totalItems) {
     // Page numbers
 
     for (
-        let page = 1;
-        page <= totalPages;
+        let page = Math.max(1, currentPage - 2);
+        page <= Math.min(totalPages, currentPage + 2);
         page++
     ) {
 
@@ -689,7 +452,7 @@ function displayPagination(totalItems) {
                 currentPage =
                     page;
 
-                filterMovies();
+                loadAdminMovies();
 
             }
         );
@@ -728,7 +491,7 @@ function displayPagination(totalItems) {
 
                 currentPage++;
 
-                filterMovies();
+                loadAdminMovies();
 
             }
 
@@ -743,60 +506,24 @@ function displayPagination(totalItems) {
 }
 
 
-// Search
-
-const searchInput =
-    document.getElementById(
-        "searchInput"
-    );
-
-searchInput.addEventListener(
-    "input",
-    function() {
-
-        currentPage = 1;
-
-        filterMovies();
-
+// Invalidate in-flight responses immediately, including during debounce.
+function criteriaChanged(delay = 0) {
+    currentPage = 1;
+    ++requestVersion;
+    clearTimeout(searchTimer);
+    if (delay) searchTimer = setTimeout(loadAdminMovies, delay);
+    else loadAdminMovies();
+}
+const searchInput = document.getElementById("searchInput");
+searchInput.addEventListener("input", () => criteriaChanged(300));
+searchInput.addEventListener("keydown", event => {
+    if (event.key === "Enter") {
+        event.preventDefault();
+        criteriaChanged();
     }
-);
-
-
-// Type filter
-
-const typeFilter =
-    document.getElementById(
-        "typeFilter"
-    );
-
-typeFilter.addEventListener(
-    "change",
-    function() {
-
-        currentPage = 1;
-
-        filterMovies();
-
-    }
-);
-
-
-// Sort filter
-
-const sortFilter =
-    document.getElementById(
-        "sortFilter"
-    );
-
-sortFilter.addEventListener(
-    "change",
-    function() {
-
-        sortMovies();
-
-    }
-);
-
+});
+document.getElementById("typeFilter").addEventListener("change", () => criteriaChanged());
+document.getElementById("sortFilter").addEventListener("change", () => criteriaChanged());
 
 // Add content button
 
