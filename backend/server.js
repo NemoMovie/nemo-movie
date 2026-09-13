@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import { registerPremiumRoutes } from "./premium-routes.js";
 import session from "express-session";
 import SQLiteSessionStore from "./session-store.js";
 import { createAdminAuth, validateNewUsername } from "./admin-auth.js";
@@ -1508,6 +1509,11 @@ app.delete(
 );
 
 
+const stopPremiumCleanup = registerPremiumRoutes(app, db, {
+    requireAdmin, requireSameOrigin,
+    adminIdentity: () => adminAuth.getCredential().username
+});
+
 // Final fallback: never expose unexpected error details in responses or logs.
 app.use(function(err, req, res, next) {
     if (res.headersSent) {
@@ -1544,6 +1550,7 @@ const server = app.listen(
 );
 
 function shutdown() {
+    stopPremiumCleanup();
     server.close(() => {
         sessionStore.close(error => {
             if (error) console.error("Session store shutdown failed.");

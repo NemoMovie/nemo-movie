@@ -116,8 +116,20 @@ export function migratePremium(db) {
                 admin_identifier TEXT NOT NULL,
                 created_at TEXT NOT NULL
             );
-            CREATE TRIGGER IF NOT EXISTS payments_no_delete
-            BEFORE DELETE ON payments BEGIN
+            -- Replace the old unconditional guard inside the migration transaction.
+            DROP TRIGGER IF EXISTS payments_no_delete;
+            CREATE TRIGGER payments_no_delete
+            BEFORE DELETE ON payments
+            WHEN COALESCE(
+                OLD.status IN ('PENDING', 'EXPIRED')
+                AND typeof(OLD.request_expires_at) = 'text'
+                AND length(OLD.request_expires_at) = 24
+                AND OLD.request_expires_at GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9].[0-9][0-9][0-9]Z'
+                AND strftime('%Y-%m-%dT%H:%M:%fZ', OLD.request_expires_at, '+0 seconds') = OLD.request_expires_at
+                AND OLD.request_expires_at <= strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+                0
+            ) = 0
+            BEGIN
                 SELECT RAISE(ABORT, 'Payment history cannot be deleted');
             END;
             CREATE TRIGGER IF NOT EXISTS membership_audit_log_no_delete

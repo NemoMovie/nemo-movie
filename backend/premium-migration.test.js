@@ -69,7 +69,7 @@ test('each relationship rejects missing parent and restricts parent deletion',t=
     }
 });
 test('history deletion blocked and blank audit reason rejected',t=>{
-    const db=fixture(t);payment(db);audit(db);
+    const db=fixture(t);payment(db,{status:'CONFIRMED'});audit(db);
     assert.throws(()=>db.exec('DELETE FROM payments'),/cannot be deleted/);
     assert.throws(()=>db.exec('DELETE FROM membership_audit_log'),/cannot be deleted/);
     assert.throws(()=>audit(db,'   '),/CHECK/);
@@ -85,7 +85,7 @@ function legacyFixture(t) {
     const sql=db.prepare("SELECT sql FROM sqlite_master WHERE name='payments'").get().sql
         .replace("'CONFIRMED', 'EXPIRED', 'VOID'", "'CONFIRMED', 'VOID'")
         .replace(' request_expires_at TEXT NOT NULL,','');
-    const trigger=db.prepare("SELECT sql FROM sqlite_master WHERE name='payments_no_delete'").get().sql;
+    const trigger="CREATE TRIGGER payments_no_delete BEFORE DELETE ON payments BEGIN SELECT RAISE(ABORT, 'Payment history cannot be deleted'); END";
     db.exec('DROP TRIGGER payments_no_delete; DROP TABLE payments;');
     db.exec(sql);db.exec(trigger);
     const insert=db.prepare(`INSERT INTO payments (id,telegram_user_id,payment_request_code,payment_method,amount_mmk,plan,plan_days,status,created_at,transaction_reference,admin_note,refund_amount_mmk) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`);
@@ -126,4 +126,48 @@ test('unexpected schema/index/dependency fails closed without history loss',t=>{
     db.exec('DROP INDEX custom_payment_index; ALTER TABLE payments ADD COLUMN unexpected TEXT');
     assert.throws(()=>migratePremium(db),/schema/);
     assert.equal(db.prepare('SELECT COUNT(*) AS n FROM payments').get().n,2);
+});
+test('conditional guard allows only expired unpaid rows and rejects malformed dates',t=>{
+    const db=fixture(t);
+    const past='2000-01-01T00:00:00.000Z';
+    const future='9999-01-01T00:00:00.000Z';
+    let code=0;
+    for(const status of ['PENDING','EXPIRED','CONFIRMED','CORRECTED','VOID','REFUNDED']) {
+        for(const expiry of [past,future]) {
+            const request='GUARD-'+ ++code;
+            payment(db,{payment_request_code:request,status,request_expires_at:expiry});
+            const remove=()=>db.prepare('DELETE FROM payments WHERE payment_request_code=?').run(request);
+            if(['PENDING','EXPIRED'].includes(status)&&expiry===past) assert.equal(remove().changes,1);
+            else {assert.throws(remove,/cannot be deleted/);assert(db.prepare('SELECT 1 FROM payments WHERE payment_request_code=?').get(request));}
+        }
+    }
+    for(const expiry of ['', 'null','NULL','now','2000-01-01','2000-01-01T00:00:00Z',
+        '2000-01-01T00:00:00.000+00:00','2000-01-01t00:00:00.000z',
+        '2000-02-30T00:00:00.000Z','2001-02-29T00:00:00.000Z',
+        '2000-01-01T24:00:00.000Z','2000-13-01T00:00:00.000Z',
+        '2000-01-01T00:60:00.000Z','2000-01-01T00:00:60.000Z',
+        ' 2000-01-01T00:00:00.000Z',Buffer.from(past)]) {
+        const request='BAD-'+ ++code;
+        payment(db,{payment_request_code:request,request_expires_at:expiry});
+        assert.throws(()=>db.prepare('DELETE FROM payments WHERE payment_request_code=?').run(request),/cannot be deleted/);
+    }
+    // Cleanup-style SQL and the trigger agree on an expired request.
+    payment(db,{payment_request_code:'BOUNDARY',request_expires_at:past});
+    assert.equal(db.prepare("DELETE FROM payments WHERE payment_request_code='BOUNDARY' AND request_expires_at <= strftime('%Y-%m-%dT%H:%M:%fZ','now')").run().changes,1);
+});
+test('existing v2 guard upgrades without rebuilding tables or changing any rows',t=>{
+    const db=fixture(t);payment(db);membership(db);audit(db);
+    db.exec("DROP TRIGGER payments_no_delete; CREATE TRIGGER payments_no_delete BEFORE DELETE ON payments BEGIN SELECT RAISE(ABORT, 'Payment history cannot be deleted'); END;");
+    const tables=['movies','series_episodes','telegram_users','premium_memberships','payments','membership_audit_log'];
+    const rows=()=>tables.map(name=>db.prepare(`SELECT * FROM ${name}`).all());
+    const before=rows();
+    const schema=db.prepare("SELECT name,sql,rootpage FROM sqlite_master WHERE type IN ('table','index') ORDER BY name").all();
+    const auditTrigger=db.prepare("SELECT sql FROM sqlite_master WHERE name='membership_audit_log_no_delete'").get();
+    migratePremium(db);migratePremium(db);
+    assert.deepEqual(rows(),before);
+    assert.deepEqual(db.prepare("SELECT name,sql,rootpage FROM sqlite_master WHERE type IN ('table','index') ORDER BY name").all(),schema);
+    assert.deepEqual(db.prepare("SELECT sql FROM sqlite_master WHERE name='membership_audit_log_no_delete'").get(),auditTrigger);
+    assert.throws(()=>db.exec('DELETE FROM membership_audit_log'),/cannot be deleted/);
+    db.prepare("UPDATE payments SET request_expires_at='2000-01-01T00:00:00.000Z'").run();
+    assert.equal(db.prepare('DELETE FROM payments').run().changes,1);
 });
