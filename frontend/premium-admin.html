@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Dashboard | Nemo Movie Admin</title>
+    <link rel="stylesheet" href="premium-admin.css">
+    <script type="module" src="premium-admin.js"></script>
+</head>
+<body>
+    <a class="skip-link" href="#main">Skip to dashboard</a>
+    <aside class="sidebar" aria-label="Premium administration">
+        <div class="brand"><strong>Nemo Movie</strong><span>Premium Admin</span></div>
+        <nav aria-label="Premium navigation">
+            <a class="nav-item active" href="premium-admin.html" aria-current="page">Dashboard</a>
+            <a class="nav-item" href="premium-users.html">Premium Users</a>
+            <a class="nav-item" href="pending-payments.html">Pending Payments</a>
+            <a class="nav-item" href="premium-payments.html">Payments</a>
+            <a class="nav-item" href="confirm-payment.html">Confirm Payment</a>
+        </nav>
+        <p class="nav-note">More Premium pages coming soon.</p>
+        <div class="sidebar-actions">
+            <a class="nav-item" href="admin.html">Back to Movie Admin</a>
+            <button class="nav-item logout" id="logoutButton" type="button">Logout</button>
+        </div>
+    </aside>
+    <main id="main" tabindex="-1">
+        <header>
+            <p class="eyebrow">MEMBERSHIP OVERVIEW</p>
+            <h1>Premium Dashboard</h1>
+            <p class="subtitle">Manage Premium memberships and payments.</p>
+        </header>
+        <div class="feedback">
+            <p id="dashboardMessage" role="status" aria-live="polite">Checking Admin session…</p>
+            <button id="retryButton" type="button" hidden>Retry</button>
+        </div>
+        <section class="stats-grid" id="stats" aria-label="Premium statistics" aria-busy="true">
+            <article class="stat-card"><h2>Total Premium Users</h2><p id="totalPremiumUsers" class="stat-value">—</p><span>All Premium memberships</span></article>
+            <article class="stat-card"><h2>Active Premium</h2><p id="activePremium" class="stat-value">—</p><span>Currently active</span></article>
+            <article class="stat-card"><h2>Expired Premium</h2><p id="expiredPremium" class="stat-value">—</p><span>Memberships that have expired</span></article>
+            <article class="stat-card"><h2>Total Income</h2><p id="totalIncome" class="stat-value">—</p><span>Confirmed payments · MMK</span></article>
+        </section>
+        <noscript><p>Enable JavaScript to load your Premium Dashboard.</p></noscript>
+    </main>
+</body>
+</html>

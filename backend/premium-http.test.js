@@ -99,6 +99,7 @@ test('isolated real-session Premium HTTP smoke', async t => {
   return {...r,data:JSON.parse(r.text)};
  };
  assert.equal((await call(root+'/stats')).status,401);
+ assert.equal((await call(root+'/payments')).status,401);
  assert.equal((await f.login({username:'TestAdmin',password:'wrong'})).status,401);
  const login=await f.login();assert.equal(login.status,200);cookie=login.cookie;assert(cookie);
  assert.equal((await call('/api/admin/check')).status,200);
@@ -107,6 +108,11 @@ test('isolated real-session Premium HTTP smoke', async t => {
  assert.equal((await call(root+'/users',{telegram_user_id:101,username:'fake-user'})).status,200);
  // Premium writes require Origin, while GET and non-Premium login keep their policy.
  assert.equal((await f.request(root+'/stats',{cookie})).status,200);
+ const emptyHistory=await f.request(root+'/payments',{cookie});
+ assert.equal(emptyHistory.status,200);assert.equal(emptyHistory.headers['cache-control'],'no-store');
+ assert.deepEqual(JSON.parse(emptyHistory.text),{records:[],total:0,page:1,limit:20,totalPages:0});
+ for(const query of ['page=0','limit=101','status=PENDING','status=REFUNDED','method=bad','sort=bad'])
+  assert.equal((await call(root+'/payments?'+query)).status,400);
  assert.equal((await f.request(root+'/users',{body:{telegram_user_id:102},cookie})).status,403);
  assert.equal((await call(root+'/users',{telegram_user_id:102})).status,200);
  assert.equal((await f.request(root+'/users',{body:{telegram_user_id:999},origin:`http://127.0.0.1:${f.port}`})).status,401);
@@ -124,6 +130,10 @@ test('isolated real-session Premium HTTP smoke', async t => {
   [`/payments/${p.id}/confirm`,{transaction_reference:'fake',payment_at:'bad'}]])assert.equal((await call(root+route,body)).status,400);
  for(const route of ['/payments/request/bad','/users?page=0','/users?status=BAD','/users?sort=BAD'])assert.equal((await call(root+route)).status,400);
  const activation=await confirm(p.id,'fake-first');assert.equal(activation.status,200);const m=activation.data.membership;
+ const paidHistory=(await call(root+'/payments?search=fake-user&status=CONFIRMED&method=KBZPAY&sort=oldest')).data;
+ assert.equal(paidHistory.total,1);assert.equal(paidHistory.records[0].id,p.id);
+ assert.equal(paidHistory.records[0].username,'fake-user');
+ assert.equal(paidHistory.records[0].transaction_reference,'fake-first');
  assert.equal(activation.data.payment.confirmed_by,'TestAdmin');assert.equal(Date.parse(m.expires_at)-Date.parse(m.start_at),30*86400000);assert.equal(m.reminder_1d_sent_at,null);assert.equal(m.reminder_2d_sent_at,null);
  assert(!/password_hash|session_secret|credential_version/i.test(activation.text));
  assert.deepEqual((await confirm(p.id,'fake-first')).data.membership,m);assert.equal(f.runtime.db.prepare('SELECT COUNT(*) n FROM premium_membership_effects').get().n,1);

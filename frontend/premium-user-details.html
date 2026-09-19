@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium User Details | Nemo Movie Admin</title>
+    <link rel="stylesheet" href="premium-admin.css?v=user-details-6">
+    <script type="module" src="premium-user-details.js"></script>
+</head>
+<body>
+    <a class="skip-link" href="#main">Skip to user details</a>
+    <aside class="sidebar" aria-label="Premium administration">
+        <div class="brand"><strong>Nemo Movie</strong><span>Premium Admin</span></div>
+        <nav aria-label="Premium navigation">
+            <a class="nav-item" href="premium-admin.html">Dashboard</a>
+            <a class="nav-item active" href="premium-users.html" aria-current="page">Premium Users</a>
+            <a class="nav-item" href="pending-payments.html">Pending Payments</a>
+            <a class="nav-item" href="premium-payments.html">Payments</a>
+            <a class="nav-item" href="confirm-payment.html">Confirm Payment</a>
+        </nav>
+        <p class="nav-note">More Premium pages coming soon.</p>
+        <div class="sidebar-actions">
+            <a class="nav-item" href="admin.html">Back to Movie Admin</a>
+            <button class="nav-item logout" id="logoutButton" type="button">Logout</button>
+        </div>
+    </aside>
+    <main id="main" tabindex="-1">
+        <header><p class="eyebrow">MEMBERSHIP RECORD</p><h1>Premium User Details</h1><p class="subtitle"><a href="premium-users.html">Back to Premium Users</a></p></header>
+        <div class="feedback"><p id="detailsMessage" class="users-message" role="status" aria-live="polite">Checking Admin session…</p><button id="retryButton" type="button" hidden>Retry</button></div>
+        <div id="profile" hidden>
+            <section class="confirm-panel" aria-labelledby="userHeading"><h2 id="userHeading">User Information</h2><dl id="identityDetails" class="user-details"></dl></section>
+            <section class="confirm-panel" aria-labelledby="membershipHeading"><h2 id="membershipHeading">Membership</h2><dl id="membershipDetails" class="user-details"></dl></section>
+            <section class="confirm-panel" aria-labelledby="historyHeading">
+                <h2 id="historyHeading">Payment History</h2>
+                <div class="feedback"><p id="historyMessage" class="users-message" role="status" aria-live="polite"></p><button id="historyRetry" class="users-button" type="button" hidden>Retry history</button></div>
+                <div id="historyResults" aria-busy="false">
+                    <div class="users-table-wrap" tabindex="0" role="region" aria-label="Payment history, scroll horizontally on small screens">
+                        <table class="users-table"><caption>Dates shown in Myanmar Time (MMT); missing payment dates use confirmation or creation date.</caption><thead><tr><th scope="col">Request Code</th><th scope="col">Plan</th><th scope="col">Method</th><th scope="col">Amount</th><th scope="col">Status</th><th scope="col">Payment Date</th></tr></thead><tbody id="historyRows"></tbody></table>
+                    </div>
+                    <div class="users-pagination" aria-label="Pagination"><button id="previousPage" class="users-button" type="button" disabled>Previous</button><span id="pageIndicator" aria-live="polite">Page —</span><button id="nextPage" class="users-button" type="button" disabled>Next</button></div>
+                </div>
+            </section>
+            <section class="confirm-panel correction-panel" aria-labelledby="correctionHeading">
+                <h2 id="correctionHeading">Correct Membership</h2>
+                <p class="confirm-warning">Normal renewals must use a new payment request and Confirm Payment. Use correction only for incorrect membership dates.</p>
+                <button id="openCorrection" class="users-button" type="button" disabled>Correct Membership</button>
+                <p id="correctionMessage" class="users-message" role="status" aria-live="polite"></p>
+                <form id="correctionForm" hidden>
+                    <dl id="currentDetails" class="user-details"></dl>
+                    <fieldset id="correctionFields" disabled>
+                        <label>New Start Date / Time — Myanmar Time (MMT)<input id="newStart" type="datetime-local" step="0.001" required></label>
+                        <label>New Expiry Date / Time — Myanmar Time (MMT)<input id="newExpiry" type="datetime-local" step="0.001" required></label>
+                        <label>Reason (required)<textarea id="correctionReason" maxlength="1000" rows="3" required></textarea></label>
+                        <button class="users-button" type="submit">Review Correction</button>
+                    </fieldset>
+                </form>
+            </section>
+        </div>
+        <noscript><p>Enable JavaScript to view this membership.</p></noscript>
+    </main>
+    <dialog id="correctionDialog" class="user-dialog" aria-labelledby="reviewHeading">
+        <h2 id="reviewHeading">Correct Premium Membership?</h2>
+        <dl id="reviewDetails" class="user-details"></dl>
+        <p class="confirm-warning">This changes membership dates directly and should only be used to correct an Admin/data mistake.</p>
+        <p id="saveMessage" class="users-message" role="status" aria-live="polite"></p>
+        <div class="confirm-actions"><button id="cancelCorrection" class="users-button" type="button">Cancel</button><button id="saveCorrection" class="users-button" type="button">Save Correction</button></div>
+    </dialog>
+</body>
+</html>

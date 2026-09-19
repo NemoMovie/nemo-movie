@@ -82,6 +82,25 @@ export function createPremiumService(db,{clock=()=>Date.now(),random=randomInt}=
         status(uid){const m=membership(uid);return {status:status(m),start_at:m?.start_at??null,expires_at:m?.expires_at??null};},
         details(uid){const u=user(uid);const m=membership(uid);return {user:u,membership:m??null,status:status(m)};},
         history(uid,q={}){user(uid);const {size,offset}=query(q,['page','limit'],20);return {payments:db.prepare('SELECT * FROM payments WHERE telegram_user_id=? ORDER BY id DESC LIMIT ? OFFSET ?').all(id(uid),size,offset),total:db.prepare('SELECT COUNT(*) n FROM payments WHERE telegram_user_id=?').get(id(uid)).n};},
+        payments(q={}){
+            const {page,size,offset,pattern}=query(q,['page','limit','search','status','method','sort'],20);
+            const filter=select(q.status??'ALL',['ALL','CONFIRMED','CORRECTED','VOID']);
+            const method=select(q.method??'ALL',['ALL',...METHODS]);
+            const direction=select(q.sort??'newest',['newest','oldest'])==='newest'?'DESC':'ASC';
+            // Keep permanent legacy history visible without offering refund operations.
+            const where=`WHERE p.status IN ('CONFIRMED','CORRECTED','VOID','REFUNDED')
+                AND (p.payment_request_code LIKE ? ESCAPE '!' OR CAST(p.telegram_user_id AS TEXT) LIKE ? ESCAPE '!' OR u.username LIKE ? ESCAPE '!')
+                ${filter==='ALL'?'':'AND p.status=?'} ${method==='ALL'?'':'AND p.payment_method=?'}`;
+            const args=[pattern,pattern,pattern,...(filter==='ALL'?[]:[filter]),...(method==='ALL'?[]:[method])];
+            const from='FROM payments p LEFT JOIN telegram_users u USING(telegram_user_id)';
+            const records=db.prepare(`SELECT p.id,p.payment_request_code,p.telegram_user_id,u.username,
+                p.plan,p.plan_days,p.payment_method,p.amount_mmk,p.status,p.payment_at,p.confirmed_at,
+                p.created_at,p.admin_note,p.transaction_reference ${from} ${where}
+                ORDER BY COALESCE(p.payment_at,p.confirmed_at,p.created_at) ${direction},p.id ${direction}
+                LIMIT ? OFFSET ?`).all(...args,size,offset);
+            const total=db.prepare(`SELECT COUNT(*) n ${from} ${where}`).get(...args).n;
+            return {records,total,page,limit:size,totalPages:Math.ceil(total/size)};
+        },
         lookup(code){if(typeof code!=='string'||!/^NM-[A-HJ-NP-Z2-9]{6}$/.test(code))reject('Invalid Request Code');const p=db.prepare('SELECT p.*,u.username FROM payments p JOIN telegram_users u USING(telegram_user_id) WHERE payment_request_code=?').get(code);if(!p)reject('Request not found',404);return {...p,status:p.status==='PENDING'&&iso(p.request_expires_at)<=now()?'EXPIRED':p.status};},
         users(q={}){const {size,offset,pattern}=query(q,['page','limit','search','status','sort']);const filter=select(q.status??'ALL',['ALL','ACTIVE','EXPIRED']);const orders={newest:'m.created_at DESC',oldest:'m.created_at ASC',expiry_high:'m.expires_at DESC',expiry_low:'m.expires_at ASC',username_az:'u.username COLLATE NOCASE ASC',username_za:'u.username COLLATE NOCASE DESC'};const sort=select(q.sort??'newest',Object.keys(orders));const time=now();const where=`WHERE (CAST(u.telegram_user_id AS TEXT) LIKE ? ESCAPE '!' OR u.username LIKE ? ESCAPE '!' OR u.first_name LIKE ? ESCAPE '!' OR u.last_name LIKE ? ESCAPE '!') ${filter==='ALL'?'':filter==='ACTIVE'?'AND m.expires_at>?':'AND m.expires_at<=?'}`;const args=[pattern,pattern,pattern,pattern,...(filter==='ALL'?[]:[time])];const from='FROM premium_memberships m JOIN telegram_users u USING(telegram_user_id)';return {users:db.prepare(`SELECT u.telegram_user_id,u.username,u.first_name,u.last_name,m.start_at,m.expires_at ${from} ${where} ORDER BY ${orders[sort]},u.telegram_user_id DESC LIMIT ? OFFSET ?`).all(...args,size,offset).map(m=>({...m,status:status(m,time)})),total:db.prepare(`SELECT COUNT(*) n ${from} ${where}`).get(...args).n};},
         pending(q={}){const {size,offset,pattern}=query(q,['page','limit','search','payment_method','sort']);const method=q.payment_method===undefined?null:select(q.payment_method,METHODS);const sort=select(q.sort??'newest',['newest','oldest']);const where=`WHERE p.status='PENDING' AND p.request_expires_at>? AND (p.payment_request_code LIKE ? ESCAPE '!' OR CAST(p.telegram_user_id AS TEXT) LIKE ? ESCAPE '!' OR u.username LIKE ? ESCAPE '!') ${method?'AND p.payment_method=?':''}`;const args=[now(),pattern,pattern,pattern,...(method?[method]:[])];const from='FROM payments p JOIN telegram_users u USING(telegram_user_id)';return {payments:db.prepare(`SELECT p.*,u.username ${from} ${where} ORDER BY p.id ${sort==='newest'?'DESC':'ASC'} LIMIT ? OFFSET ?`).all(...args,size,offset),total:db.prepare(`SELECT COUNT(*) n ${from} ${where}`).get(...args).n};},

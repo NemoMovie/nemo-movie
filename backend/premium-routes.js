@@ -15,6 +15,7 @@ export function registerPremiumRoutes(app,db,{requireAdmin,requireSameOrigin,adm
     get('/stats',()=>service.stats());get('/users',r=>service.users(r.query));
     get('/users/:telegramUserId',r=>service.details(r.params.telegramUserId));
     get('/users/:telegramUserId/payments',r=>service.history(r.params.telegramUserId,r.query));
+    get('/payments',r=>service.payments(r.query));
     post('/users',r=>service.upsertUser(r.body));
     get('/pending',r=>service.pending(r.query));get('/payments/request/:code',r=>service.lookup(r.params.code));
     post('/payments/request',r=>service.request(r.body));

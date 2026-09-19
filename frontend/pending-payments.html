@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pending Payments | Nemo Movie Admin</title>
+    <link rel="stylesheet" href="premium-admin.css?v=pending-payments-3">
+    <script type="module" src="pending-payments.js"></script>
+</head>
+<body>
+    <a class="skip-link" href="#main">Skip to pending payments</a>
+    <aside class="sidebar" aria-label="Premium administration">
+        <div class="brand"><strong>Nemo Movie</strong><span>Premium Admin</span></div>
+        <nav aria-label="Premium navigation">
+            <a class="nav-item" href="premium-admin.html">Dashboard</a>
+            <a class="nav-item" href="premium-users.html">Premium Users</a>
+            <a class="nav-item active" href="pending-payments.html" aria-current="page">Pending Payments</a>
+            <a class="nav-item" href="premium-payments.html">Payments</a>
+            <a class="nav-item" href="confirm-payment.html">Confirm Payment</a>
+        </nav>
+        <p class="nav-note">More Premium pages coming soon.</p>
+        <div class="sidebar-actions">
+            <a class="nav-item" href="admin.html">Back to Movie Admin</a>
+            <button class="nav-item logout" id="logoutButton" type="button">Logout</button>
+        </div>
+    </aside>
+    <main id="main" tabindex="-1">
+        <header>
+            <p class="eyebrow">PAYMENT REQUESTS</p>
+            <h1>Pending Payments</h1>
+            <p class="subtitle">Review valid payment requests waiting for Admin verification.</p>
+        </header>
+        <form id="pendingFilters" class="users-controls">
+            <label>Search<input id="pendingSearch" type="search" maxlength="150" placeholder="Request Code, Telegram ID or username"></label>
+            <label>Method<select id="paymentMethod"><option value="">All methods</option><option value="KBZPAY">KBZPay</option><option value="WAVE_MONEY">Wave Money</option><option value="AYA_PAY">AYA Pay</option></select></label>
+            <label>Sort<select id="pendingSort"><option value="newest">Newest</option><option value="oldest">Oldest</option></select></label>
+        </form>
+        <div class="feedback">
+            <p id="pendingMessage" class="users-message" role="status" aria-live="polite">Checking Admin session…</p>
+            <button id="retryButton" type="button" hidden>Retry</button>
+        </div>
+        <section id="pendingResults" aria-label="Pending payments" aria-busy="true">
+            <div class="users-table-wrap" tabindex="0" role="region" aria-label="Pending payments table, scroll horizontally on small screens">
+                <table class="users-table">
+                    <caption>Request dates shown in Myanmar Time (MMT)</caption>
+                    <thead><tr><th scope="col">Request Code</th><th scope="col">User</th><th scope="col">Plan</th><th scope="col">Method</th><th scope="col">Amount</th><th scope="col">Expires</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead>
+                    <tbody id="pendingRows"></tbody>
+                </table>
+            </div>
+            <div class="users-pagination" aria-label="Pagination">
+                <button id="previousPage" class="users-button" type="button" disabled>Previous</button>
+                <span id="pageIndicator" aria-live="polite">Page —</span>
+                <button id="nextPage" class="users-button" type="button" disabled>Next</button>
+            </div>
+        </section>
+        <noscript><p>Enable JavaScript to load pending payments.</p></noscript>
+    </main>
+    <dialog id="paymentDialog" class="user-dialog" aria-labelledby="detailTitle">
+        <div class="user-dialog-heading"><h2 id="detailTitle">Pending request details</h2><form method="dialog"><button class="users-button" autofocus>Close</button></form></div>
+        <p id="detailMessage" class="users-message" role="status" aria-live="polite"></p>
+        <dl id="paymentDetails" class="user-details"></dl>
+    </dialog>
+</body>
+</html>

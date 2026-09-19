@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Users | Nemo Movie Admin</title>
+    <link rel="stylesheet" href="premium-admin.css?v=premium-users-2b">
+    <script type="module" src="premium-users.js"></script>
+</head>
+<body>
+    <a class="skip-link" href="#main">Skip to Premium users</a>
+    <aside class="sidebar" aria-label="Premium administration">
+        <div class="brand"><strong>Nemo Movie</strong><span>Premium Admin</span></div>
+        <nav aria-label="Premium navigation">
+            <a class="nav-item" href="premium-admin.html">Dashboard</a>
+            <a class="nav-item active" href="premium-users.html" aria-current="page">Premium Users</a>
+            <a class="nav-item" href="pending-payments.html">Pending Payments</a>
+            <a class="nav-item" href="premium-payments.html">Payments</a>
+            <a class="nav-item" href="confirm-payment.html">Confirm Payment</a>
+        </nav>
+        <p class="nav-note">More Premium pages coming soon.</p>
+        <div class="sidebar-actions">
+            <a class="nav-item" href="admin.html">Back to Movie Admin</a>
+            <button class="nav-item logout" id="logoutButton" type="button">Logout</button>
+        </div>
+    </aside>
+    <main id="main" tabindex="-1">
+        <header>
+            <p class="eyebrow">MEMBERSHIPS</p>
+            <h1>Premium Users</h1>
+            <p class="subtitle">Manage active and expired Premium memberships.</p>
+        </header>
+        <form id="usersFilters" class="users-controls">
+            <label>Search<input id="userSearch" type="search" maxlength="150" placeholder="Telegram ID, username or name"></label>
+            <label>Status<select id="userStatus"><option value="ALL">All</option><option value="ACTIVE">Active</option><option value="EXPIRED">Expired</option></select></label>
+            <label>Sort<select id="userSort"><option value="newest">Newest</option><option value="oldest">Oldest</option><option value="expiry_high">Expiry: High to Low</option><option value="expiry_low">Expiry: Low to High</option><option value="username_az">Username: A-Z</option><option value="username_za">Username: Z-A</option></select></label>
+        </form>
+        <div class="feedback">
+            <p id="usersMessage" class="users-message" role="status" aria-live="polite">Checking Admin session…</p>
+            <button id="retryButton" type="button" hidden>Retry</button>
+        </div>
+        <section id="usersResults" aria-label="Premium users" aria-busy="true">
+            <div class="users-table-wrap" tabindex="0" role="region" aria-label="Premium users table, scroll horizontally on small screens">
+                <table class="users-table">
+                    <caption>Membership dates shown in Myanmar Time (MMT)</caption>
+                    <thead><tr><th scope="col">Telegram ID</th><th scope="col">Username</th><th scope="col">Start Date</th><th scope="col">Expiry Date</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead>
+                    <tbody id="usersRows"></tbody>
+                </table>
+            </div>
+            <div class="users-pagination" aria-label="Pagination">
+                <button id="previousPage" class="users-button" type="button" disabled>Previous</button>
+                <span id="pageIndicator" aria-live="polite">Page —</span>
+                <button id="nextPage" class="users-button" type="button" disabled>Next</button>
+            </div>
+        </section>
+        <noscript><p>Enable JavaScript to load Premium users.</p></noscript>
+    </main>
+    <dialog id="userDialog" class="user-dialog" aria-labelledby="detailTitle">
+        <div class="user-dialog-heading"><h2 id="detailTitle">Premium user details</h2><form method="dialog"><button class="users-button" autofocus>Close</button></form></div>
+        <p id="detailMessage" class="users-message" role="status" aria-live="polite"></p>
+        <button id="detailRetry" class="users-button" type="button" hidden>Retry</button>
+        <dl id="userDetails" class="user-details"></dl>
+    </dialog>
+</body>
+</html>
