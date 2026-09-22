@@ -61,11 +61,17 @@ export function createPremiumService(db,{clock=()=>Date.now(),random=randomInt}=
         const existing=db.prepare("SELECT * FROM payments WHERE telegram_user_id=? AND status='PENDING' AND request_expires_at>? ORDER BY id DESC").all(uid,time).find(p=>{iso(p.request_expires_at);return true;});
         return existing??newRequest(uid,plan,method,time);
     });
-    const confirm=db.transaction((value,input,admin)=>{
+    const confirm=db.transaction((value,input,admin,verifiedCaseId=null)=>{
         text(admin);body(input,['transaction_reference','payment_at']);const p=getPayment(value);const time=now();
         if(p.status==='CONFIRMED'){reconciled(p.telegram_user_id);return {payment:p,membership:membership(p.telegram_user_id)};}
         if(p.status!=='PENDING'||iso(p.request_expires_at)<=time)reject('Request is not valid for confirmation',409);
-        const reference=text(input.transaction_reference);const paymentAt=iso(input.payment_at);if(paymentAt>time)reject('Payment time is in the future');
+        let reference;
+        if(verifiedCaseId!==null){
+            const verified=db.prepare(`SELECT 1 FROM payment_case_verifications v JOIN payment_cases c ON c.id=v.case_id WHERE c.id=? AND c.status='CONFIRMED' AND c.telegram_user_id=? AND c.plan=? AND c.plan_days=? AND c.amount_mmk=? AND c.payment_method=? AND v.internal_request_code=? AND v.transaction_reference IS NULL AND v.payment_at=? AND v.confirmed_at=? AND v.admin_identifier=?`).get(id(verifiedCaseId),p.telegram_user_id,p.plan,p.plan_days,p.amount_mmk,p.payment_method,p.payment_request_code,input.payment_at,time,admin);
+            if(!verified||input.transaction_reference!==null)reject('Durable case verification required',409);
+            reference=null;
+        }else reference=text(input.transaction_reference);
+        const paymentAt=iso(input.payment_at);if(paymentAt>time)reject('Payment time is in the future');
         if(!METHODS.includes(p.payment_method)||!Object.hasOwn(PLANS,p.plan)||PLANS[p.plan][0]!==p.plan_days||PLANS[p.plan][1]!==p.amount_mmk)reject('Payment plan mismatch',409);
         if(db.prepare("SELECT 1 FROM payments WHERE payment_method=? AND transaction_reference=? AND status='CONFIRMED' AND id<>?").get(p.payment_method,reference,p.id))reject('Transaction reference already confirmed',409);
         const events=reconciled(p.telegram_user_id);
@@ -79,6 +85,8 @@ export function createPremiumService(db,{clock=()=>Date.now(),random=randomInt}=
         cleanup,
         upsertUser(input){body(input,['telegram_user_id','username','first_name','last_name']);const uid=id(input.telegram_user_id);const time=now();const existing=db.prepare('SELECT * FROM telegram_users WHERE telegram_user_id=?').get(uid);const names=['username','first_name','last_name'].map(k=>input[k]===undefined?existing?.[k]??null:input[k]===null?null:text(input[k]));db.prepare(`INSERT INTO telegram_users (telegram_user_id,username,first_name,last_name,first_seen_at,last_seen_at,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(telegram_user_id) DO UPDATE SET username=excluded.username,first_name=excluded.first_name,last_name=excluded.last_name,last_seen_at=excluded.last_seen_at,updated_at=excluded.updated_at`).run(uid,...names,time,time,time,time);return user(uid);},
         request:input=>request.immediate(input), confirm:(pid,input,admin)=>confirm.immediate(pid,input,admin),
+        // Internal adapter-only entry; public/legacy confirm still requires a reference.
+        confirmVerifiedCase:(pid,caseId,paymentAt,admin)=>confirm.immediate(pid,{transaction_reference:null,payment_at:paymentAt},admin,id(caseId)),
         status(uid){const m=membership(uid);return {status:status(m),start_at:m?.start_at??null,expires_at:m?.expires_at??null};},
         details(uid){const u=user(uid);const m=membership(uid);return {user:u,membership:m??null,status:status(m)};},
         history(uid,q={}){user(uid);const {size,offset}=query(q,['page','limit'],20);return {payments:db.prepare('SELECT * FROM payments WHERE telegram_user_id=? ORDER BY id DESC LIMIT ? OFFSET ?').all(id(uid),size,offset),total:db.prepare('SELECT COUNT(*) n FROM payments WHERE telegram_user_id=?').get(id(uid)).n};},

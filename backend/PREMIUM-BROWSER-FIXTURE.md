@@ -93,3 +93,31 @@ scripts. The fixture must be reviewed if the auth initialization boundary change
 Keep fixture ports local: do not add them to Cloudflare, port forwarding or firewall
 rules. Other processes/users on the same PC may access this deliberately fake
 service; it is not intended for deployment or real credentials/data.
+
+## Customer Service browser testing
+
+Open http://127.0.0.1:3101/customer-service.html after the normal synthetic login.
+Six synthetic Payment Cases cover every state: WAITING_PAYMENT,
+WAITING_VERIFICATION, NEEDS_CUSTOMER_ACTION, CONFIRMED, COMPLETED and REJECTED.
+They use separate fake users 301–306, fake proof identifiers, and manual action
+history. The CONFIRMED case has durable verification from a deliberately failed
+synthetic grant; its retry can succeed. No Telegram service is involved.
+
+This adds one completed synthetic payment to the older fixture totals: 26 payment
+rows overall, 25 permanent history rows. User 101's original 24-row history and
+manual membership correction scenario remain unchanged.
+
+The Customer Service page renders proof placeholders, never financial screenshots.
+No raw Telegram storage IDs or internal Request Codes are shown. Messages are only
+recorded in the synthetic database; they are not delivered to Telegram.
+
+Optional real headless browser test (requires an existing Playwright installation
+and Microsoft Edge; no dependency installation is performed): set
+PLAYWRIGHT_MODULE_PATH to the absolute path to Playwright's index.mjs, then run
+`node --test backend/customer-service-browser.test.js`. This test starts and stops
+its own isolated fixture at an allocated loopback port other than 3000, blocks
+browser requests to other origins, and cleans up its synthetic databases.
+The test skips when Playwright is not explicitly configured.
+
+Always-available mocked frontend tests:
+`node --test backend/customer-service-frontend.test.js`.

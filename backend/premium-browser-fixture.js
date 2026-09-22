@@ -1,3 +1,6 @@
+import { migratePaymentCaseDelivery } from './payment-case-delivery-migration.js';
+import { migratePaymentBotIntake } from './payment-bot-intake-migration.js';
+import { migratePaymentCaseCompletion } from './payment-case-completion-migration.js';
 // Development only. Never import server.js: it loads .env and starts production initialization.
 import fs from 'node:fs';
 import os from 'node:os';
@@ -15,6 +18,14 @@ import { migratePremium } from './premium-migration.js';
 import { migratePremiumLedgerV3 } from './premium-ledger-migration.js';
 import { createPremiumService } from './premium-service.js';
 import { registerPremiumRoutes } from './premium-routes.js';
+import { migratePaymentCases } from './payment-case-migration.js';
+import { migratePaymentCaseAdapter } from './payment-case-adapter-migration.js';
+import { migratePaymentCaseWorkflow } from './payment-case-workflow-migration.js';
+import { createPaymentCaseLifecycle } from './payment-case-lifecycle.js';
+import { migratePaymentCaseAdmin } from './payment-case-admin-migration.js';
+import { migratePaymentCaseConversation } from './payment-case-conversation-migration.js';
+import { createPaymentCaseConversationService } from './payment-case-conversation.js';
+import { createPaymentCaseAdminService } from './payment-case-admin.js';
 
 export const SYNTHETIC_LOGIN = Object.freeze({ username: 'FixtureAdmin', password: 'Fixture-Only-Password-2026!' });
 const backend = path.dirname(fileURLToPath(import.meta.url));
@@ -22,7 +33,7 @@ const repository = path.dirname(backend);
 const frontend = path.join(repository, 'frontend');
 const prefix = 'nemo-premium-browser-';
 const assets = new Set(['login.html', 'login.js', 'login.css', 'config.js', 'nemo-movie-logo.png', 'premium-admin.css',
-    ...['premium-admin', 'premium-users', 'pending-payments', 'premium-payments', 'confirm-payment', 'premium-user-details'].flatMap(n => [n + '.html', n + '.js'])]);
+    ...['premium-admin', 'premium-users', 'pending-payments', 'premium-payments', 'confirm-payment', 'premium-user-details', 'customer-service'].flatMap(n => [n + '.html', n + '.js'])]);
 const inside = (child, root) => { const r = path.relative(root, child); return r === '' || (!path.isAbsolute(r) && r !== '..' && !r.startsWith('..' + path.sep)); };
 const canonical = value => { const p = fs.realpathSync(value); return process.platform === 'win32' ? p.toLowerCase() : p; };
 
@@ -92,6 +103,8 @@ export async function startPremiumBrowserFixture({ port = 3101 } = {}) {
         try {
             seed.exec('CREATE TABLE movies(id INTEGER PRIMARY KEY,telegram_chat_id TEXT,telegram_message_id INTEGER);CREATE TABLE series_episodes(id INTEGER PRIMARY KEY);');
             migratePremium(seed); migratePremiumLedgerV3(seed);
+            migratePaymentCases(seed); migratePaymentCaseAdapter(seed); migratePaymentCaseAdmin(seed);
+            migratePaymentCaseConversation(seed); migratePaymentCaseWorkflow(seed);
             const now = Date.now();
             const expired = createPremiumService(seed, { clock: () => now - 60 * 86400000 });
             expired.upsertUser({ telegram_user_id: 202, username: 'fixture_expired', first_name: 'Synthetic', last_name: 'Expired' });
@@ -107,6 +120,36 @@ export async function startPremiumBrowserFixture({ port = 3101 } = {}) {
                 service.void(p.id, { reason: 'Synthetic pagination fixture' }, 'FixtureAdmin');
             }
             service.request({ telegram_user_id: 101, plan: 'MONTH_3', payment_method: 'WAVE_MONEY' });
+            const cases = createPaymentCaseAdminService(seed, { clock: () => now });
+            const timestamp = new Date(now).toISOString();
+            const conversation = createPaymentCaseConversationService(seed, { clock: () => now });
+            for (const [index, state] of ['WAITING_PAYMENT','WAITING_VERIFICATION','CANCELLED','CONFIRMED','COMPLETED','REJECTED'].entries()) {
+                const uid = 301 + index;
+                service.upsertUser({ telegram_user_id: uid, username: 'fixture_case_' + uid, first_name: 'Synthetic', last_name: state });
+                const caseId = Number(seed.prepare(`INSERT INTO payment_cases(telegram_user_id,plan,plan_days,amount_mmk,payment_method,payment_account_reference,created_at,updated_at) VALUES(?,'MONTH_1',30,2000,'KBZPAY','synthetic-account-v1',?,?)`).run(uid,timestamp,timestamp).lastInsertRowid);
+                if (state !== 'CONFIRMED') {
+                    const customer = (input, messageId) => conversation.appendCustomerMessage(caseId, { ...input, telegram_chat_id: String(uid), telegram_message_id: messageId }, { telegramUserId: uid });
+                    if (state === 'WAITING_PAYMENT') {
+                        customer({ message_type: 'PHOTO', telegram_file_id: 'SYNTHETIC-PHOTO' }, 1);
+                        customer({ message_type: 'TEXT', text: '1473' }, 2);
+                    }
+                    customer({ message_type: 'TEXT', text: 'I already sent the synthetic payment.' }, 3);
+                    customer({ message_type: 'TEXT', text: '<img src=x onerror=alert(1)>' }, 4);
+                    conversation.prepareAdminMessage(caseId, { text: 'Please wait while we verify your payment.' }, { adminIdentifier: 'FixtureAdmin' });
+                    conversation.appendSystemMessage(caseId, { text: 'Synthetic conversation recorded. No Telegram connection.' });
+                }
+                if (state === 'CANCELLED') { createPaymentCaseLifecycle(seed,{clock:()=>now}).cancel(caseId,uid); continue; }
+                if (state === 'WAITING_PAYMENT') continue;
+                for (const last of ['0123','1234']) seed.prepare('INSERT INTO payment_case_submissions(case_id,transaction_last_four,proof_file_id,created_at) VALUES(?,?,?,?)').run(caseId,last,'SYNTHETIC-PROOF-NOT-A-REAL-FILE',timestamp);
+                seed.prepare("UPDATE payment_cases SET status='WAITING_VERIFICATION',submitted_at=? WHERE id=?").run(timestamp,caseId);
+                if (state === 'REJECTED') cases.reject(caseId,{message:'Synthetic rejection for testing only.',reason_category:'PAYMENT_NOT_FOUND'},'FixtureAdmin');
+                if (['CONFIRMED','COMPLETED'].includes(state)) {
+                    if (state === 'CONFIRMED') seed.exec("CREATE TRIGGER fixture_fail_grant BEFORE INSERT ON premium_membership_effects BEGIN SELECT RAISE(ABORT,'Synthetic failure'); END;");
+                    try { cases.confirm(caseId,{payment_at:timestamp,plan:'MONTH_1',amount_mmk:2000,payment_method:'KBZPAY'},'FixtureAdmin'); if(state==='COMPLETED')cases.retry(caseId,{},'FixtureAdmin'); }
+                    finally { if (state === 'CONFIRMED') seed.exec('DROP TRIGGER fixture_fail_grant'); }
+                }
+            }
+        migratePaymentBotIntake(seed); migratePaymentCaseCompletion(seed); migratePaymentCaseDelivery(seed);
         } finally { seed.close(); }
 
         // Reuse the same bounded production auth initialization as premium-http.test.js.
@@ -138,7 +181,7 @@ export async function startPremiumBrowserFixture({ port = 3101 } = {}) {
                     const filename = path.join(frontend, name);
                     if (fs.lstatSync(filename).isSymbolicLink() || !inside(canonical(filename), canonical(frontend))) return res.sendStatus(404);
                     if (!name.endsWith('.html')) return res.sendFile(filename, { cacheControl: false });
-                    const html = fs.readFileSync(filename, 'utf8').replace('<body>', '<body><div style="grid-column:1/-1;padding:12px;background:#603b00;color:white;text-align:center;font: bold 16px Arial">DEVELOPMENT FIXTURE — SYNTHETIC DATA ONLY — NOT PRODUCTION</div>');
+                    const html = fs.readFileSync(filename, 'utf8').replace(/<body\b[^>]*>/i, opening => opening + '<div style="grid-column:1/-1;padding:12px;background:#603b00;color:white;text-align:center;font: bold 16px Arial">DEVELOPMENT FIXTURE — SYNTHETIC DATA ONLY — NOT PRODUCTION</div>');
                     return res.type('html').send(html);
                 }
                 if (/^\/api\/admin\/premium(?:\/|$)/.test(req.path) || ['/api/login', '/api/logout', '/api/admin/check'].includes(req.path)) return next();

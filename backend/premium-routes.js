@@ -1,7 +1,11 @@
 import { timingSafeEqual } from 'node:crypto';
 import { createPremiumService, PremiumError } from './premium-service.js';
+import { createPaymentCaseAdminService } from './payment-case-admin.js';
+import { createPaymentCaseConversationService } from './payment-case-conversation.js';
+import { registerPaymentBotRoutes } from './payment-bot-api.js';
 export function registerPremiumRoutes(app,db,{requireAdmin,requireSameOrigin,adminIdentity,env=process.env}) {
     const service=createPremiumService(db);
+    registerPaymentBotRoutes(app,db,env);
     const wrap=fn=>(req,res,next)=>{try{res.set('Cache-Control','no-store');res.json(fn(req));}catch(error){if(error instanceof PremiumError)res.status(error.status).json({message:error.message});else next(error);}};
     const root='/api/admin/premium';
     app.use(root,(req,res,next)=>{res.set('Cache-Control','no-store');next();});
@@ -12,6 +16,20 @@ export function registerPremiumRoutes(app,db,{requireAdmin,requireSameOrigin,adm
         return requireSameOrigin(req,res,next);
     };
     const post=(suffix,fn)=>app.post(root+suffix,requirePremiumOrigin,requireAdmin,wrap(fn));
+    const cases=createPaymentCaseAdminService(db);
+    get('/cases',r=>cases.list(r.query));
+    get('/cases/:id',r=>cases.details(r.params.id));
+    const conversation=createPaymentCaseConversationService(db);
+    get('/cases/:id/messages',r=>{
+        if(db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('payment_case_messages','payment_case_message_evidence')").all().length!==2)throw new PremiumError('Conversation service is unavailable',503);
+        return conversation.listMessages(r.params.id,r.query);
+    });
+    post('/cases/:id/messages',r=>conversation.prepareAdminMessage(r.params.id,r.body,{adminIdentifier:adminIdentity(r)}));
+    post('/cases/:id/needs-customer-action',r=>cases.needsCustomerAction(r.params.id,r.body,adminIdentity(r)));
+    post('/cases/:id/return-to-verification',r=>cases.returnToVerification(r.params.id,r.body,adminIdentity(r)));
+    post('/cases/:id/reject',r=>cases.reject(r.params.id,r.body,adminIdentity(r)));
+    post('/cases/:id/confirm',r=>cases.confirm(r.params.id,r.body,adminIdentity(r)));
+    post('/cases/:id/retry-activation',r=>cases.retry(r.params.id,r.body,adminIdentity(r)));
     get('/stats',()=>service.stats());get('/users',r=>service.users(r.query));
     get('/users/:telegramUserId',r=>service.details(r.params.telegramUserId));
     get('/users/:telegramUserId/payments',r=>service.history(r.params.telegramUserId,r.query));

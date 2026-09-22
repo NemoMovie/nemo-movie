@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Customer Service | Nemo Movie Admin</title>
+<link rel="stylesheet" href="premium-admin.css?v=customer-service-1">
+<script type="module" src="customer-service.js"></script>
+</head>
+<body class="customer-service-page">
+<a class="skip-link" href="#main">Skip to Customer Service</a>
+    <aside class="sidebar" aria-label="Premium administration">
+        <div class="brand"><strong>Nemo Movie</strong><span>Premium Admin</span></div>
+        <nav aria-label="Premium navigation">
+            <a class="nav-item" href="premium-admin.html">Dashboard</a>
+            <a class="nav-item" href="premium-users.html">Premium Users</a>
+            <a class="nav-item" href="premium-payments.html">Payments</a>
+            <a class="nav-item active" href="customer-service.html" aria-current="page">Customer Service</a>
+        </nav>
+        <div class="sidebar-actions">
+            <a class="nav-item" href="admin.html">Back to Movie Admin</a>
+            <button class="nav-item logout" id="logoutButton" type="button">Logout</button>
+        </div>
+    </aside>
+<main id="main" tabindex="-1">
+ <header><p class="eyebrow">PAYMENT CASES</p><h1>Customer Service</h1><p class="subtitle">Review payment evidence and manage Premium activation.</p></header>
+ <p class="cs-note">Real Telegram delivery is not connected. Delivery states currently support isolated fake-transport testing only.</p>
+ <div class="cs-layout">
+  <section class="cs-queue" aria-labelledby="queueHeading">
+   <h2 id="queueHeading">Case queue</h2>
+   <form id="queueFilters" class="cs-controls">
+    <fieldset id="filterFields" disabled>
+     <label>Search<input id="caseSearch" type="search" maxlength="150" placeholder="Telegram ID or username"></label>
+     <label>Status<select id="caseStatus"><option value="OPEN" selected>Open</option><option value="ALL">All statuses</option><option value="WAITING_PAYMENT">Waiting Payment</option><option value="WAITING_VERIFICATION">Waiting Verification</option><option value="NEEDS_CUSTOMER_ACTION">Legacy: Needs Customer Action</option><option value="CONFIRMED">Confirmed</option><option value="COMPLETED">Completed</option><option value="REJECTED">Rejected</option><option value="CANCELLED">Cancelled</option><option value="EXPIRED">Expired request</option></select></label>
+     <label>Sort<select id="caseSort"><option value="newest">Newest</option><option value="oldest">Oldest</option></select></label>
+     <button type="submit" class="users-button">Search / Refresh</button>
+    </fieldset>
+   </form>
+   <p id="queueMessage" class="users-message" role="status">Checking Admin session…</p>
+   <button id="queueRetry" class="users-button" type="button" hidden>Retry</button>
+   <div id="caseQueue" aria-busy="false"></div>
+   <div class="cs-pagination"><button id="previousPage" class="users-button" disabled>Previous</button><span id="pageIndicator">Page —</span><button id="nextPage" class="users-button" disabled>Next</button></div>
+  </section>
+  <section class="cs-detail" aria-labelledby="caseHeading">
+   <h2 id="caseHeading">Select a payment case</h2>
+   <p id="detailMessage" class="users-message" role="status" aria-live="polite">Choose a case from the queue.</p>
+   <button id="detailRefresh" class="users-button" type="button" hidden>Reload case</button>
+   <div id="caseContent" hidden>
+    <p id="caseOutcome" role="status" class="cs-outcome"></p>
+    <h3>Customer &amp; payment</h3><dl id="caseSummary" class="user-details"></dl>
+    <h3>Verification &amp; membership</h3><dl id="caseVerification" class="user-details"></dl>
+    <h3>Evidence history</h3><ol id="caseEvidence" class="cs-timeline"></ol>
+    <div id="caseActions" class="cs-actions" aria-label="Admin actions"></div>
+    <section class="cs-conversation" aria-labelledby="conversationHeading">
+     <h3 id="conversationHeading">Telegram Conversation</h3>
+     <p id="conversationMessage" class="users-message" role="status" aria-live="polite"></p>
+     <form id="conversationForm">
+      <label for="conversationText">Message to customer</label>
+      <textarea id="conversationText" class="users-input" maxlength="4096" rows="3" required></textarea>
+      <button id="conversationSend" class="users-button" type="submit">Queue message</button>
+      <p id="conversationSendStatus" class="cs-note" role="status"></p>
+     </form>
+     <ol id="conversationList" class="cs-messages"></ol>
+     <button id="conversationRetry" class="users-button" type="button" hidden>Retry conversation</button>
+     <button id="conversationMore" class="users-button" type="button" hidden>Load more messages</button>
+    </section>
+    <h3>Case timeline</h3><p class="cs-note">Recorded case actions and audit history, separate from conversation messages.</p><ol id="caseTimeline" class="cs-timeline"></ol>
+   </div>
+  </section>
+ </div>
+ <noscript>Enable JavaScript to manage payment cases.</noscript>
+</main>
+<dialog id="actionDialog" class="user-dialog cs-dialog" aria-labelledby="actionHeading">
+ <form id="actionForm">
+  <h2 id="actionHeading"></h2><dl id="actionSummary" class="user-details"></dl>
+  <p id="actionWarning" class="confirm-warning"></p>
+  <fieldset id="actionFields">
+   <label id="paymentTimeLabel" hidden>Actual payment received date/time — MMT<input id="paymentTime" type="datetime-local" step="1"></label>
+   <label id="reasonLabel" hidden>Rejection category<select id="rejectionCategory"><option value="">Choose a category</option><option value="PAYMENT_NOT_FOUND">Payment not found</option><option value="INCORRECT_PAYMENT_DETAILS">Incorrect payment details</option><option value="PAYMENT_PROOF_ALREADY_USED">Payment proof already used</option><option value="INCORRECT_AMOUNT">Incorrect amount</option><option value="INVALID_OR_UNCLEAR_PROOF">Invalid or unclear proof</option><option value="OTHER">Other</option></select></label>
+   <label id="messageLabel" hidden>Admin explanation / message<textarea id="adminMessage" maxlength="500" rows="4"></textarea></label>
+  </fieldset>
+  <p id="actionMessage" class="users-message" role="alert"></p>
+  <div class="confirm-actions"><button id="cancelAction" class="users-button" type="button">Cancel</button><button id="submitAction" class="users-button" type="submit">Confirm action</button></div>
+ </form>
+</dialog>
+</body></html>

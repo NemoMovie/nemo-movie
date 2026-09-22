@@ -110,3 +110,44 @@ h1 { margin: 0; font-size: clamp(26px, 3vw, 36px); line-height: 1.2; }
     .user-details { grid-template-columns: minmax(0, 1fr); gap: 4px; }
     .user-details dd { margin-bottom: 12px; }
 }
+
+/* Customer Service only: existing Premium pages retain their layout. */
+.customer-service-page main { padding: clamp(18px, 3vw, 40px); }
+.cs-layout { display: grid; grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.4fr); gap: 22px; align-items: start; }
+.cs-queue, .cs-detail { min-width: 0; padding: 22px; background: #202020; border: 1px solid #353535; border-radius: 12px; overflow-wrap: anywhere; }
+.cs-layout h2 { margin-top: 0; font-size: 21px; }
+.cs-note { color: #aaa; font-size: 13px; }
+.cs-controls fieldset, .cs-dialog fieldset { min-width: 0; border: 0; padding: 0; display: grid; gap: 12px; }
+.cs-controls label, .cs-dialog label { display: grid; gap: 7px; min-width: 0; color: #ccc; font-size: 14px; }
+.cs-controls input, .cs-controls select, .cs-dialog input, .cs-dialog select, .cs-dialog textarea, .cs-conversation textarea { width: 100%; min-width: 0; padding: 10px; border: 1px solid #484848; border-radius: 8px; color: #fff; background: #171717; font: inherit; font-size: 16px; color-scheme: dark; }
+.cs-dialog textarea, .cs-conversation textarea { resize: vertical; }
+.cs-case { width: 100%; display: grid; gap: 6px; margin-top: 12px; padding: 14px; border: 1px solid #444; border-radius: 8px; background: #191919; color: #eee; text-align: left; overflow-wrap: anywhere; }
+.cs-case:hover:not(:disabled), .cs-case[aria-pressed="true"] { border-color: #cb858a; background: #302226; }
+.cs-case:disabled { cursor: wait; opacity: .65; }
+.cs-case small { color: #bbb; }
+.cs-badge { width: fit-content; max-width: 100%; font-size: 12px; padding: 3px 8px; border: 1px solid #555; border-radius: 8px; color: #ccc; }
+.cs-badge.WAITING_VERIFICATION, .cs-badge.CONFIRMED { color: #f0d495; border-color: #796030; background: #382e1c; }
+.cs-badge.COMPLETED { color: #9ee0b1; border-color: #39764b; }
+.cs-badge.REJECTED { color: #ffb2b7; border-color: #673239; }
+.cs-pagination, .cs-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 18px; }
+.cs-pagination { justify-content: space-between; font-size: 13px; }
+.cs-outcome { padding: 14px; border: 1px solid #555; border-radius: 8px; white-space: pre-wrap; }
+.cs-outcome.pending { color: #f0d495; border-color: #796030; background: #382e1c; }
+.cs-outcome.success { color: #9ee0b1; border-color: #39764b; }
+.cs-outcome.rejected, .cs-actions .cs-reject { color: #ffb2b7; border-color: #673239; }
+.cs-timeline { padding-left: 22px; }
+.cs-timeline li { padding: 10px 0; border-bottom: 1px solid #353535; white-space: pre-wrap; }
+.cs-detail dd { white-space: pre-wrap; }
+@media (max-width: 1100px) { .cs-layout { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 480px) { .cs-queue, .cs-detail { padding: 16px; } .cs-pagination { justify-content: center; } }
+
+/* Conversation is distinct from case audit/evidence history. */
+.customer-service-page .cs-conversation { margin-top: 1.5rem; border-top: 1px solid #303746; padding-top: .5rem; }
+.customer-service-page .cs-messages { list-style: none; padding: 0; display: grid; gap: .75rem; }
+.customer-service-page .cs-message { min-width: 0; max-width: 90%; padding: .8rem; border: 1px solid #303746; border-radius: .65rem; background: #181e29; overflow-wrap: anywhere; }
+.customer-service-page .cs-message > strong, .customer-service-page .cs-message > small { display: block; }
+.customer-service-page .cs-message p { white-space: pre-wrap; margin: .5rem 0; }
+.customer-service-page .cs-message-admin { justify-self: end; background: #20283b; }
+.customer-service-page .cs-message-system { justify-self: stretch; max-width: none; border-style: dashed; }
+
+.customer-service-page #conversationForm { display: grid; gap: 10px; margin: 16px 0; }

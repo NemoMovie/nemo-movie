@@ -88,7 +88,7 @@ test('isolated browser fixture: real auth, Premium routes, assets and cleanup', 
         assert.equal(path.dirname(f.paths.admin), f.directory);
         assert.equal(path.dirname(f.paths.sessions), f.directory);
         assert(fs.existsSync(f.paths.uploads));
-        for (const page of ['login', 'premium-admin', 'premium-users', 'pending-payments', 'premium-payments', 'confirm-payment', 'premium-user-details']) {
+        for (const page of ['login', 'premium-admin', 'premium-users', 'pending-payments', 'premium-payments', 'confirm-payment', 'premium-user-details', 'customer-service']) {
             const r = await request(f, '/' + page + '.html');
             assert.equal(r.status, 200); assert.match(r.text, /SYNTHETIC DATA ONLY/);
             assert.match(r.headers['content-security-policy'], /connect-src 'self'/);
@@ -113,8 +113,26 @@ test('isolated browser fixture: real auth, Premium routes, assets and cleanup', 
         assert.equal((await get('/users/202')).status, 'EXPIRED');
         assert.equal((await get('/users/101/payments')).payments.length, 20);
         assert.equal((await get('/users/101/payments?page=2')).payments.length, 4);
-        assert.equal((await get('/payments')).total, 24);
+        assert.equal((await get('/payments')).total, 25);
         assert.equal((await get('/pending')).total, 1);
+        const cases = await get('/cases');
+        assert.equal(cases.total, 6);
+        assert.equal(new Set(cases.cases.map(c => c.status)).size, 6);
+        const open = await get('/cases?status=OPEN');
+        assert.equal(open.total, 3);
+        assert.deepEqual(open.cases.map(c => c.status).sort(), ['CONFIRMED','WAITING_PAYMENT','WAITING_VERIFICATION']);
+        assert.deepEqual(await get('/cases?status=ALL'), cases);
+        for (const status of ['WAITING_PAYMENT','WAITING_VERIFICATION','CANCELLED','CONFIRMED','COMPLETED','REJECTED']) {
+            const exact = await get('/cases?status=' + status);
+            assert.equal(exact.total, 1); assert.equal(exact.cases[0].status, status);
+        }
+        const oldest = await get('/cases?status=OPEN&search=fixture_case&sort=oldest&limit=1&page=1');
+        const second = await get('/cases?status=OPEN&search=fixture_case&sort=oldest&limit=1&page=2');
+        assert.equal(oldest.total, 3); assert.equal(oldest.totalPages, 3);
+        assert.equal(oldest.cases.length, 1); assert(oldest.cases[0].id < second.cases[0].id);
+        assert.equal(open.cases[0].status, 'CONFIRMED');
+        assert.equal((await get('/cases?status=OPEN&search=305')).total, 0);
+        assert.equal((await get('/cases?status=OPEN&search=301')).total, 1);
     });
     await t.test('real correction with Origin/auth, audit and no fake payment', async () => {
         const route = '/api/admin/premium/users/101/membership';
@@ -127,7 +145,7 @@ test('isolated browser fixture: real auth, Premium routes, assets and cleanup', 
         assert.equal(d.membership.expires_at, body.expires_at);
         const db = new Database(f.paths.movies, { readonly: true, fileMustExist: true });
         try {
-            assert.equal(db.prepare('SELECT COUNT(*) n FROM payments').get().n, 25);
+            assert.equal(db.prepare('SELECT COUNT(*) n FROM payments').get().n, 26);
             assert.equal(db.prepare("SELECT reason FROM membership_audit_log WHERE action='MEMBERSHIP_CORRECTION' LIMIT 1").get().reason, body.reason);
         } finally { db.close(); }
     });
