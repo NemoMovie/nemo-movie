@@ -3,12 +3,14 @@ import { createPremiumService, PremiumError } from './premium-service.js';
 import { createPaymentCaseAdminService } from './payment-case-admin.js';
 import { createPaymentCaseConversationService } from './payment-case-conversation.js';
 import { registerPaymentBotRoutes } from './payment-bot-api.js';
+import { registerPaymentProofPreview } from './payment-proof-preview.js';
 export function registerPremiumRoutes(app,db,{requireAdmin,requireSameOrigin,adminIdentity,env=process.env}) {
     const service=createPremiumService(db);
     registerPaymentBotRoutes(app,db,env);
     const wrap=fn=>(req,res,next)=>{try{res.set('Cache-Control','no-store');res.json(fn(req));}catch(error){if(error instanceof PremiumError)res.status(error.status).json({message:error.message});else next(error);}};
     const root='/api/admin/premium';
     app.use(root,(req,res,next)=>{res.set('Cache-Control','no-store');next();});
+    registerPaymentProofPreview(app,db,{requireAdmin,env});
     const get=(suffix,fn)=>app.get(root+suffix,requireAdmin,wrap(fn));
     // Premium mutations require Origin; shared validation still owns origin matching.
     const requirePremiumOrigin=(req,res,next)=>{

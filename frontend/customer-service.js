@@ -28,7 +28,15 @@ async function loadConversation(){
   for(const m of data.messages){
    const item=node('li','','cs-message cs-message-'+m.sender_type.toLowerCase());
    item.append(node('strong',{CUSTOMER:'Customer',ADMIN:'Admin',SYSTEM:'System'}[m.sender_type]),node('small',date(m.created_at),'cs-note'));
-   if(m.message_type==='PHOTO')item.append(node('p','[Payment screenshot]'),node('small','Secure preview not connected yet','cs-note'));
+  if(m.message_type==='PHOTO'){
+ const image=screenshotImage(caseId,m.evidence_id);
+
+ item.append(node('p','Payment screenshot'));
+
+ if(image)item.append(image);
+
+ item.append(screenshotLink(caseId,m.evidence_id));
+}
    if(typeof m.text_content==='string')item.append(node('p',m.text_content));
    const delivery=m.delivery_state??(m.sender_type==='ADMIN'?m.initial_delivery_state:null);
    const deliveryLabels={PENDING_SEND:'Pending delivery — not delivered',SENT:'Sent',FAILED:'Failed — delivery unsuccessful'};
@@ -42,6 +50,21 @@ async function loadConversation(){
 }
 function notify(id,message,error=false){el(id).textContent=message;el(id).classList.toggle('error',error);}
 function node(tag,text,cls){const n=document.createElement(tag);n.textContent=text;if(cls)n.className=cls;return n;}
+function screenshotLink(caseId,evidenceId){
+ if(!Number.isSafeInteger(caseId)||caseId<=0||!Number.isSafeInteger(evidenceId)||evidenceId<=0)return node('small','Screenshot unavailable','cs-note');
+ const link=node('a','View Screenshot');link.href=API_URL+root+'/'+caseId+'/evidence/'+evidenceId+'/preview';link.target='_blank';link.rel='noopener noreferrer';return link;
+}
+function screenshotImage(caseId,evidenceId){
+ if(!Number.isSafeInteger(caseId)||caseId<=0||!Number.isSafeInteger(evidenceId)||evidenceId<=0)return null;
+
+ const image=document.createElement('img');
+ image.src=API_URL+root+'/'+caseId+'/evidence/'+evidenceId+'/preview';
+ image.alt='Payment screenshot';
+ image.className='cs-payment-screenshot';
+ image.loading='lazy';
+
+ return image;
+}
 function fields(id,values){el(id).replaceChildren();for(const [label,value] of values)el(id).append(node('dt',label),node('dd',value??'—'));}
 function validCase(c){return c&&Number.isSafeInteger(c.id)&&c.id>0&&states.includes(c.status)&&Object.hasOwn(plans,c.plan)&&Object.hasOwn(methods,c.payment_method)&&Number.isSafeInteger(c.amount_mmk);}
 async function api(path,options={}){
@@ -85,7 +108,7 @@ function render(c){
  else outcome.textContent=c.status==='NEEDS_CUSTOMER_ACTION'?'Legacy case — explicit Admin reconciliation required':c.status.replaceAll('_',' ');
  fields('caseSummary', [['Customer',identity(c)],['Username',c.username?'@'+c.username:'—'],['Telegram ID',c.telegram_user_id],['Plan',plans[c.plan]],['Plan days',c.plan_days],['Expected amount',money(c.amount_mmk)],['Payment method',methods[c.payment_method]],['Account reference',c.payment_account_reference],['Status',c.status],['Submitted',date(c.submitted_at)]]);
  fields('caseVerification',[['Customer last-four',c.transaction_last_four],['Verified full reference',c.verification?.transaction_reference],['Money verified by',c.verification?.admin_identifier],['Payment received',date(c.verification?.payment_at)],['Linked payment ID',c.payment_id],['Membership start',date(c.membership?.start_at)],['Membership expiry',date(c.membership?.expires_at)],['Created',date(c.created_at)],['Updated',date(c.updated_at)],['Confirmed',date(c.confirmed_at)],['Completed',date(c.completed_at)],['Rejected',date(c.rejected_at)]]);
- el('caseEvidence').replaceChildren();for(const e of c.evidence??[])el('caseEvidence').append(node('li',`${date(e.created_at)} · Evidence ${e.id}\nLast-four: ${e.transaction_last_four??'—'}\n${e.has_proof?'Payment proof received — secure preview integration pending.':'Transaction information submitted.'}`));
+ el('caseEvidence').replaceChildren();for(const e of c.evidence??[]){const item=node('li',`${date(e.created_at)} · Evidence ${e.id}\nLast-four: ${e.transaction_last_four??'—'}\n${e.has_proof?'Payment proof received.':'Transaction information submitted.'}`);if(e.has_proof)item.append(screenshotLink(c.id,e.id));el('caseEvidence').append(item);}
  if(!c.evidence?.length)el('caseEvidence').append(node('li','No evidence submitted yet.'));
  if(c.possible_duplicate_cases?.length)el('caseEvidence').append(node('li','Possible reused proof in cases '+c.possible_duplicate_cases.map(x=>x.id).join(', ')+'. Warning only — check the actual payment records; this does not prove duplicate payment.'));
  const timeline=[['Case created',c.created_at],['Case submitted / reviewed',c.submitted_at],['Money confirmed',c.confirmed_at],['Premium completed',c.completed_at]].filter(([,at])=>at).map(([message,at])=>({message,at}));
@@ -115,7 +138,7 @@ function openAction(action){
  el('actionHeading').textContent=labels[action];el('submitAction').textContent=labels[action];
  fields('actionSummary',[['Customer',identity(current)],['Telegram ID',current.telegram_user_id],['Case',current.id],['Plan',plans[current.plan]],['Amount',money(current.amount_mmk)],['Method',methods[current.payment_method]],['Customer last-four',current.transaction_last_four]]);
  for(const [label,input,on] of [['paymentTimeLabel','paymentTime',action==='confirm'],['reasonLabel','rejectionCategory',action==='reject'],['messageLabel','adminMessage',action==='reject']]){el(label).hidden=!on;el(input).required=on;el(input).value='';}
- el('actionWarning').textContent=action==='confirm'?'Verify the screenshot, customer last-four and actual payment account records externally. Last-four is not unique. Confirmation automatically attempts Premium activation.':action==='retry-activation'?'Retry activation using the already recorded money verification. This does not confirm payment again.':action==='reject'?'Rejection is permanent for this case. No Premium activation will occur.':'Record an explicit Admin message. Telegram delivery is not connected; this message will not be sent.';
+ el('actionWarning').textContent=action==='confirm'?'Verify the screenshot, customer last-four and actual payment account records externally. Last-four is not unique. Confirmation automatically attempts Premium activation.':action==='retry-activation'?'Retry activation using the already recorded money verification. This does not confirm payment again.':action==='reject'?'Rejection is permanent for this case. No Premium activation will occur.':'Record an explicit Admin message for the customer.';
  notify('actionMessage','');dialog.showModal();
 }
 function mmtToUtc(value){

@@ -29,7 +29,7 @@ test('queue filters/pagination and stale queue responses',async()=>{
 });
 test('selected case stale protection, safe text and explicit-field rendering',async()=>{
  const f=fixture();f.run('loadDetail(1)');f.run('loadDetail(2)');f.reply(1,record(2));await tick();f.reply(0,record());await tick();
- assert.equal(f.run('current.id'),2);assert.match(f.get('caseSummary').textContent,/<img src=x/);assert.doesNotMatch(f.get('caseSummary').textContent,/NM-ABCDEF|DO-NOT-RENDER/);assert.match(f.get('caseEvidence').textContent,/secure preview integration pending/);
+ assert.equal(f.run('current.id'),2);assert.match(f.get('caseSummary').textContent,/<img src=x/);assert.doesNotMatch(f.get('caseSummary').textContent,/NM-ABCDEF|DO-NOT-RENDER/);assert.match(f.get('caseEvidence').textContent,/View Screenshot/);
 });
 test('actions by state, completed versus confirmed outcome',()=>{
  const f=fixture();for(const [state,count] of [['WAITING_PAYMENT',0],['WAITING_VERIFICATION',2],['NEEDS_CUSTOMER_ACTION',0],['CANCELLED',0],['EXPIRED',0],['CONFIRMED',1],['COMPLETED',0],['REJECTED',0]]){f.setCase(record(1,state));assert.equal(f.get('caseActions').children.length,count);}
@@ -66,7 +66,7 @@ test('conversation plain-text rendering, photo placeholder, pending state and pa
  assert.equal(f.get('conversationMessage').textContent,'Loading conversation...');assert.match(f.pending[1].url,/\/1\/messages\?limit=50/);assert.equal(f.pending[1].options.credentials,'include');
  const base={payment_case_id:1,created_at:'2026-01-01T00:00:00.000Z'};
  f.reply(1,{messages:[{...base,sender_type:'CUSTOMER',message_type:'PHOTO',text_content:null},{...base,sender_type:'CUSTOMER',message_type:'TEXT',text_content:'<img src=x onerror=alert(1)>'},{...base,sender_type:'ADMIN',message_type:'TEXT',text_content:'Please wait',initial_delivery_state:'PENDING_SEND'},{...base,sender_type:'SYSTEM',message_type:'SYSTEM',text_content:'System note'}],next_after_id:4});await tick();
- const text=f.get('conversationList').textContent;for(const pattern of [/Customer/,/Admin/,/System/,/Payment screenshot/,/Secure preview not connected yet/,/<img src=x/,/Pending delivery — not delivered/,/Please wait/])assert.match(text,pattern);
+ const text=f.get('conversationList').textContent;for(const pattern of [/Customer/,/Admin/,/System/,/Payment screenshot/,/Screenshot unavailable/,/<img src=x/,/Pending delivery — not delivered/,/Please wait/])assert.match(text,pattern);
  assert.equal(f.get('conversationMore').hidden,false);f.run('loadConversation()');assert.match(f.pending[2].url,/after_id=4/);f.reply(2,{messages:[{...base,sender_type:'CUSTOMER',message_type:'TEXT',text_content:'Last page'}],next_after_id:null});await tick();assert.equal(f.get('conversationList').children.length,5);assert.equal(f.get('conversationMore').hidden,true);
 });
 test('conversation case switching discards stale response; errors independent and retry works',async()=>{
@@ -87,4 +87,10 @@ test('delivery labels use durable state; sent/failed are not shown as pending',a
 test('Admin composer persists only once during click burst and never changes case state',async()=>{
  const f=fixture();f.setCase(record());f.get('conversationText').value='<img src=x onerror=alert(1)>';f.run('queueConversation({preventDefault(){}})');f.run('queueConversation({preventDefault(){}})');assert.equal(f.pending.length,1);assert.equal(f.pending[0].url,'/api/admin/premium/cases/1/messages');assert.equal(f.pending[0].options.credentials,'include');assert.deepEqual(JSON.parse(f.pending[0].options.body),{text:'<img src=x onerror=alert(1)>'});f.reply(0,{delivery_state:'PENDING_SEND'});await tick();assert.equal(f.run('current.status'),'WAITING_VERIFICATION');assert.equal(f.get('conversationText').value,'');assert.match(f.get('conversationSendStatus').textContent,/queued/);
  f.setCase(record(1,'COMPLETED'));f.get('conversationText').value='No';await f.run('queueConversation({preventDefault(){}})');assert.equal(f.pending.length,1);assert.equal(f.get('conversationSend').disabled,true);
+});
+
+test('screenshot links use only protected case/evidence IDs',()=>{
+ const f=fixture();f.setCase(record());const link=f.get('caseEvidence').children[0].children[0];
+ assert.equal(link.textContent,'View Screenshot');assert.equal(link.href,'/api/admin/premium/cases/1/evidence/1/preview');assert.equal(link.rel,'noopener noreferrer');
+ assert.equal(f.run('screenshotLink(1,0).textContent'),'Screenshot unavailable');
 });

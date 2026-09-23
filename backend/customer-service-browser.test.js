@@ -27,7 +27,7 @@ test('Customer Service real browser, synthetic fixture only',{skip:!playwright},
   }
   await select('WAITING_PAYMENT');await conversationReady();
   assert.match(await page.locator('#conversationList').innerText(),/Payment screenshot/);
-  assert.match(await page.locator('#conversationList').innerText(),/Secure preview not connected yet/);
+  assert.match(await page.locator('#conversationList').innerText(),/Screenshot unavailable/);
   assert.match(await page.locator('#conversationList').innerText(),/<img src=x onerror=alert\(1\)>/);
   assert.equal(await page.locator('#conversationList img').count(),0);
   assert.match(await page.locator('#conversationList').innerText(),/Pending delivery — not delivered/);
@@ -38,7 +38,7 @@ test('Customer Service real browser, synthetic fixture only',{skip:!playwright},
   await page.locator('#detailRefresh').click();await page.getByText('Unable to load conversation.',{exact:true}).waitFor();assert.equal(await page.locator('#caseContent').isVisible(),true);
   await page.unroute('**/cases/*/messages?*');await page.locator('#conversationRetry').click();await conversationReady();
   await page.locator('#caseStatus').selectOption('ALL');await page.waitForFunction(()=>document.querySelectorAll('.cs-case').length===6);
-  await select('WAITING_VERIFICATION');assert.match(await page.locator('#caseEvidence').innerText(),/secure preview integration pending/);
+  await select('WAITING_VERIFICATION');assert.match(await page.locator('#caseEvidence').innerText(),/View Screenshot/);
   assert.equal(await page.getByRole('button',{name:'Need More Information',exact:true}).count(),0);
   assert.equal(await page.locator('#fullReference').count(),0);
   await page.locator('#conversationText').fill('<img src=x onerror=alert(1)> Synthetic Admin message');await page.locator('#conversationSend').click();await page.getByText('Message queued; not yet delivered.',{exact:true}).waitFor();await conversationReady();

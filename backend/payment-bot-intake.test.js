@@ -14,11 +14,11 @@ import { createPremiumService } from './premium-service.js';
 import { createPaymentCaseAdminService } from './payment-case-admin.js';
 import { createPaymentCaseConversationService } from './payment-case-conversation.js';
 import { createFlow,messages } from '../payment-bot/flow.js';
-function fixture(t){
+function fixture(t,env={}){
  const db=new Database(':memory:');t.after(()=>db.close());db.exec('CREATE TABLE movies(id INTEGER PRIMARY KEY); CREATE TABLE series_episodes(id INTEGER PRIMARY KEY)');
  for(const f of [migratePremium,migratePremiumLedgerV3,migratePaymentCases,migratePaymentCaseAdapter,migratePaymentCaseAdmin,migratePaymentCaseConversation,migratePaymentCaseWorkflow,migratePaymentBotIntake])f(db);
  let time=Date.parse('2026-01-01T00:00:00.000Z'),seq=0;const clock=()=>time;
- const premium=createPremiumService(db,{clock});premium.upsertUser({telegram_user_id:101});const service=createPaymentBotIntake(db,{clock});
+ const premium=createPremiumService(db,{clock});premium.upsertUser({telegram_user_id:101});const service=createPaymentBotIntake(db,{clock,env});
  const act=(kind,data={})=>service.act(kind,{telegram_user_id:101,operation_key:'cb:'+ ++seq,...data});
  const select=()=>act('select',{plan:'MONTH_1',payment_method:'KBZPAY',after_case_id:service.state({telegram_user_id:101}).case?.id??0}).case;
  const message=(c,extra={},n=++seq)=>{seq=Math.max(seq,n);return service.act('message',{telegram_user_id:101,operation_key:`msg:101:${n}`,case_id:c.id,chat_id:'101',message_id:n,message_date:Math.floor(clock()/1000),kind:'TEXT',text:'0007',...extra});};
@@ -98,4 +98,22 @@ test('unexpired method audit rejects proof history and expired direct changes',t
  const next=f.select();createPaymentCaseConversationService(f.db,{clock:f.clock}).appendCustomerMessage(next.id,{message_type:'PHOTO',telegram_file_id:'synthetic_unlinked',telegram_chat_id:'101',telegram_message_id:999},{telegramUserId:101});
  assert.throws(()=>f.act('method',{case_id:next.id,payment_method:'AYA_PAY'}));
  assert.equal(f.db.prepare('SELECT count(*) n FROM payment_case_method_changes').get().n,0);
+});
+
+for(const method of ['KBZPAY','WAVE_MONEY','AYA_PAY'])test('configured '+method+' instructions and stored reference',t=>{
+ const f=fixture(t,{[method+'_ACCOUNT']:' synthetic-account ',[method+'_ACCOUNT_NAME']:' Synthetic Name '});
+ const c=f.act('select',{plan:'MONTH_1',payment_method:method,after_case_id:0}).case;
+ assert.equal(c.payment_account,'synthetic-account');assert.equal(c.payment_account_name,'Synthetic Name');assert.equal(c.instructions_live,true);
+ assert.equal(f.db.prepare('SELECT payment_account_reference FROM payment_cases').get().payment_account_reference,'LIVE:'+method+':v1');
+ assert.equal(f.service.state({telegram_user_id:101}).case.instructions_live,true);
+});
+test('method change stores resolved live reference and partial configuration falls back',t=>{
+ const f=fixture(t,{WAVE_MONEY_ACCOUNT:'synthetic-wave',WAVE_MONEY_ACCOUNT_NAME:'Synthetic Wave',AYA_PAY_ACCOUNT:'synthetic-partial'}),c=f.select();
+ assert.equal(c.instructions_live,false);
+ const changed=f.act('method',{case_id:c.id,payment_method:'WAVE_MONEY'}).case;
+ assert.equal(changed.payment_account,'synthetic-wave');assert.equal(changed.payment_account_name,'Synthetic Wave');assert.equal(changed.instructions_live,true);
+ assert.equal(f.db.prepare('SELECT new_account FROM payment_case_method_changes').get().new_account,'LIVE:WAVE_MONEY:v1');
+ const fallback=f.act('method',{case_id:c.id,payment_method:'AYA_PAY'}).case;
+ assert.equal(fallback.instructions_live,false);assert.equal(fallback.payment_account,'PAYMENT_ACCOUNT_NOT_CONFIGURED');assert.equal(fallback.payment_account_name,'PAYMENT_ACCOUNT_NOT_CONFIGURED');
+ assert.equal(f.db.prepare('SELECT payment_account_reference FROM payment_cases').get().payment_account_reference,'DEV:AYA_PAY:v1');
 });

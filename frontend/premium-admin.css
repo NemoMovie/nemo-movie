@@ -149,5 +149,14 @@ h1 { margin: 0; font-size: clamp(26px, 3vw, 36px); line-height: 1.2; }
 .customer-service-page .cs-message p { white-space: pre-wrap; margin: .5rem 0; }
 .customer-service-page .cs-message-admin { justify-self: end; background: #20283b; }
 .customer-service-page .cs-message-system { justify-self: stretch; max-width: none; border-style: dashed; }
+.customer-service-page .cs-payment-screenshot {
+    display: block;
+    width: auto;
+    max-width: 280px;
+    max-height: 380px;
+    object-fit: contain;
+    margin: 10px 0;
+    border-radius: 8px;
+}
 
 .customer-service-page #conversationForm { display: grid; gap: 10px; margin: 16px 0; }

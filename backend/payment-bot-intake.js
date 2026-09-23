@@ -2,10 +2,11 @@ import { createHash } from 'node:crypto';
 import { PLANS,createPremiumService,PremiumError,id } from './premium-service.js';
 import { createPaymentCaseLifecycle } from './payment-case-lifecycle.js';
 import { createPaymentCaseConversationService } from './payment-case-conversation.js';
-import { DEVELOPMENT_ACCOUNTS } from './payment-bot-accounts.js';
+import { resolvePaymentAccounts } from './payment-bot-accounts.js';
 const fail=(text,status=400)=>{throw new PremiumError(text,status);};
 const closed=['COMPLETED','REJECTED','CANCELLED','EXPIRED'];
-export function createPaymentBotIntake(db,{clock=()=>Date.now()}={}){
+export function createPaymentBotIntake(db,{clock=()=>Date.now(),env=process.env}={}){
+ const accounts=resolvePaymentAccounts(env);
  const lifecycle=createPaymentCaseLifecycle(db,{clock}),conversation=createPaymentCaseConversationService(db,{clock}),premium=createPremiumService(db,{clock});
  const now=()=>new Date(clock()).toISOString();
  function ready(){if(!db.prepare("SELECT 1 FROM sqlite_master WHERE name='payment_bot_operations'").get())fail('Intake migration required',503);}
@@ -14,8 +15,8 @@ export function createPaymentBotIntake(db,{clock=()=>Date.now()}={}){
  const load=(cid,uid)=>owner(db.prepare('SELECT * FROM payment_cases_latest WHERE id=?').get(id(cid)),uid);
  function latest(uid){return db.prepare("SELECT * FROM payment_cases_latest WHERE telegram_user_id=? ORDER BY CASE WHEN status IN ('WAITING_PAYMENT','WAITING_VERIFICATION','CONFIRMED','NEEDS_CUSTOMER_ACTION') THEN 0 ELSE 1 END,id DESC LIMIT 1").get(uid);}
  function hasProof(c){return Boolean(c.latest_proof_submission_id||db.prepare("SELECT 1 FROM payment_case_messages WHERE payment_case_id=? AND message_type='PHOTO' LIMIT 1").get(c.id));}
- function dto(c){if(!c)return null;return {id:c.id,status:c.status,plan:c.plan,plan_days:c.plan_days,amount_mmk:c.amount_mmk,payment_method:c.payment_method,step:c.status==='WAITING_PAYMENT'?(c.latest_proof_submission_id?'WAITING_LAST_FOUR':'WAITING_SCREENSHOT'):c.status==='WAITING_VERIFICATION'?'ADMIN_REVIEW':c.status==='CONFIRMED'?'ACTIVATION_PENDING':'CLOSED',expires_at:new Date(Date.parse(c.created_at)+86400000).toISOString(),can_change_method:c.status==='WAITING_PAYMENT'&&!hasProof(c),payment_account:DEVELOPMENT_ACCOUNTS[c.payment_method].account,payment_account_name:DEVELOPMENT_ACCOUNTS[c.payment_method].name,instructions_live:false};}
- function method(value){if(typeof value!=='string'||!Object.hasOwn(DEVELOPMENT_ACCOUNTS,value))fail('Invalid method');return DEVELOPMENT_ACCOUNTS[value];}
+ function dto(c){if(!c)return null;return {id:c.id,status:c.status,plan:c.plan,plan_days:c.plan_days,amount_mmk:c.amount_mmk,payment_method:c.payment_method,step:c.status==='WAITING_PAYMENT'?(c.latest_proof_submission_id?'WAITING_LAST_FOUR':'WAITING_SCREENSHOT'):c.status==='WAITING_VERIFICATION'?'ADMIN_REVIEW':c.status==='CONFIRMED'?'ACTIVATION_PENDING':'CLOSED',expires_at:new Date(Date.parse(c.created_at)+86400000).toISOString(),can_change_method:c.status==='WAITING_PAYMENT'&&!hasProof(c),payment_account:accounts[c.payment_method].account,payment_account_name:accounts[c.payment_method].name,instructions_live:accounts[c.payment_method].live};}
+ function method(value){if(typeof value!=='string'||!Object.hasOwn(accounts,value))fail('Invalid method');return accounts[value];}
  const operation=db.transaction((kind,input)=>{
   const uid=id(input.telegram_user_id),key=input.operation_key;
   if(typeof key!=='string'||! /^[A-Za-z0-9:_-]{1,150}$/.test(key))fail('Invalid operation key');
